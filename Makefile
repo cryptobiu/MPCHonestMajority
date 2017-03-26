@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/meital/ClionProjects/Secret-Sharing
+CMAKE_SOURCE_DIR = /home/meital/ClionProjects/MPCHonestMajority
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/meital/ClionProjects/Secret-Sharing
+CMAKE_BINARY_DIR = /home/meital/ClionProjects/MPCHonestMajority
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,9 +80,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/meital/ClionProjects/Secret-Sharing/CMakeFiles /home/meital/ClionProjects/Secret-Sharing/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/meital/ClionProjects/MPCHonestMajority/CMakeFiles /home/meital/ClionProjects/MPCHonestMajority/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/meital/ClionProjects/Secret-Sharing/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/meital/ClionProjects/MPCHonestMajority/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -111,17 +111,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named Secret_Sharing
+# Target rules for targets named MPCHonestMajority
 
 # Build rule for target.
-Secret_Sharing: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 Secret_Sharing
-.PHONY : Secret_Sharing
+MPCHonestMajority: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 MPCHonestMajority
+.PHONY : MPCHonestMajority
 
 # fast build rule for target.
-Secret_Sharing/fast:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/build
-.PHONY : Secret_Sharing/fast
+MPCHonestMajority/fast:
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/build
+.PHONY : MPCHonestMajority/fast
 
 AES_PRG.o: AES_PRG.cpp.o
 
@@ -129,7 +129,7 @@ AES_PRG.o: AES_PRG.cpp.o
 
 # target to build an object file
 AES_PRG.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/AES_PRG.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/AES_PRG.cpp.o
 .PHONY : AES_PRG.cpp.o
 
 AES_PRG.i: AES_PRG.cpp.i
@@ -138,7 +138,7 @@ AES_PRG.i: AES_PRG.cpp.i
 
 # target to preprocess a source file
 AES_PRG.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/AES_PRG.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/AES_PRG.cpp.i
 .PHONY : AES_PRG.cpp.i
 
 AES_PRG.s: AES_PRG.cpp.s
@@ -147,7 +147,7 @@ AES_PRG.s: AES_PRG.cpp.s
 
 # target to generate assembly for a file
 AES_PRG.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/AES_PRG.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/AES_PRG.cpp.s
 .PHONY : AES_PRG.cpp.s
 
 ArithmeticCircuit.o: ArithmeticCircuit.cpp.o
@@ -156,7 +156,7 @@ ArithmeticCircuit.o: ArithmeticCircuit.cpp.o
 
 # target to build an object file
 ArithmeticCircuit.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ArithmeticCircuit.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ArithmeticCircuit.cpp.o
 .PHONY : ArithmeticCircuit.cpp.o
 
 ArithmeticCircuit.i: ArithmeticCircuit.cpp.i
@@ -165,7 +165,7 @@ ArithmeticCircuit.i: ArithmeticCircuit.cpp.i
 
 # target to preprocess a source file
 ArithmeticCircuit.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ArithmeticCircuit.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ArithmeticCircuit.cpp.i
 .PHONY : ArithmeticCircuit.cpp.i
 
 ArithmeticCircuit.s: ArithmeticCircuit.cpp.s
@@ -174,35 +174,8 @@ ArithmeticCircuit.s: ArithmeticCircuit.cpp.s
 
 # target to generate assembly for a file
 ArithmeticCircuit.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ArithmeticCircuit.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ArithmeticCircuit.cpp.s
 .PHONY : ArithmeticCircuit.cpp.s
-
-Communication.o: Communication.cpp.o
-
-.PHONY : Communication.o
-
-# target to build an object file
-Communication.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/Communication.cpp.o
-.PHONY : Communication.cpp.o
-
-Communication.i: Communication.cpp.i
-
-.PHONY : Communication.i
-
-# target to preprocess a source file
-Communication.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/Communication.cpp.i
-.PHONY : Communication.cpp.i
-
-Communication.s: Communication.cpp.s
-
-.PHONY : Communication.s
-
-# target to generate assembly for a file
-Communication.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/Communication.cpp.s
-.PHONY : Communication.cpp.s
 
 HIM.o: HIM.cpp.o
 
@@ -210,7 +183,7 @@ HIM.o: HIM.cpp.o
 
 # target to build an object file
 HIM.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/HIM.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/HIM.cpp.o
 .PHONY : HIM.cpp.o
 
 HIM.i: HIM.cpp.i
@@ -219,7 +192,7 @@ HIM.i: HIM.cpp.i
 
 # target to preprocess a source file
 HIM.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/HIM.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/HIM.cpp.i
 .PHONY : HIM.cpp.i
 
 HIM.s: HIM.cpp.s
@@ -228,7 +201,7 @@ HIM.s: HIM.cpp.s
 
 # target to generate assembly for a file
 HIM.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/HIM.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/HIM.cpp.s
 .PHONY : HIM.cpp.s
 
 MPCCommunication.o: MPCCommunication.cpp.o
@@ -237,7 +210,7 @@ MPCCommunication.o: MPCCommunication.cpp.o
 
 # target to build an object file
 MPCCommunication.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/MPCCommunication.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/MPCCommunication.cpp.o
 .PHONY : MPCCommunication.cpp.o
 
 MPCCommunication.i: MPCCommunication.cpp.i
@@ -246,7 +219,7 @@ MPCCommunication.i: MPCCommunication.cpp.i
 
 # target to preprocess a source file
 MPCCommunication.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/MPCCommunication.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/MPCCommunication.cpp.i
 .PHONY : MPCCommunication.cpp.i
 
 MPCCommunication.s: MPCCommunication.cpp.s
@@ -255,7 +228,7 @@ MPCCommunication.s: MPCCommunication.cpp.s
 
 # target to generate assembly for a file
 MPCCommunication.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/MPCCommunication.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/MPCCommunication.cpp.s
 .PHONY : MPCCommunication.cpp.s
 
 Protocol.o: Protocol.cpp.o
@@ -264,7 +237,7 @@ Protocol.o: Protocol.cpp.o
 
 # target to build an object file
 Protocol.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/Protocol.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/Protocol.cpp.o
 .PHONY : Protocol.cpp.o
 
 Protocol.i: Protocol.cpp.i
@@ -273,7 +246,7 @@ Protocol.i: Protocol.cpp.i
 
 # target to preprocess a source file
 Protocol.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/Protocol.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/Protocol.cpp.i
 .PHONY : Protocol.cpp.i
 
 Protocol.s: Protocol.cpp.s
@@ -282,7 +255,7 @@ Protocol.s: Protocol.cpp.s
 
 # target to generate assembly for a file
 Protocol.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/Protocol.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/Protocol.cpp.s
 .PHONY : Protocol.cpp.s
 
 ProtocolTimer.o: ProtocolTimer.cpp.o
@@ -291,7 +264,7 @@ ProtocolTimer.o: ProtocolTimer.cpp.o
 
 # target to build an object file
 ProtocolTimer.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ProtocolTimer.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ProtocolTimer.cpp.o
 .PHONY : ProtocolTimer.cpp.o
 
 ProtocolTimer.i: ProtocolTimer.cpp.i
@@ -300,7 +273,7 @@ ProtocolTimer.i: ProtocolTimer.cpp.i
 
 # target to preprocess a source file
 ProtocolTimer.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ProtocolTimer.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ProtocolTimer.cpp.i
 .PHONY : ProtocolTimer.cpp.i
 
 ProtocolTimer.s: ProtocolTimer.cpp.s
@@ -309,7 +282,7 @@ ProtocolTimer.s: ProtocolTimer.cpp.s
 
 # target to generate assembly for a file
 ProtocolTimer.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ProtocolTimer.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ProtocolTimer.cpp.s
 .PHONY : ProtocolTimer.cpp.s
 
 TemplateField.o: TemplateField.cpp.o
@@ -318,7 +291,7 @@ TemplateField.o: TemplateField.cpp.o
 
 # target to build an object file
 TemplateField.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/TemplateField.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/TemplateField.cpp.o
 .PHONY : TemplateField.cpp.o
 
 TemplateField.i: TemplateField.cpp.i
@@ -327,7 +300,7 @@ TemplateField.i: TemplateField.cpp.i
 
 # target to preprocess a source file
 TemplateField.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/TemplateField.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/TemplateField.cpp.i
 .PHONY : TemplateField.cpp.i
 
 TemplateField.s: TemplateField.cpp.s
@@ -336,7 +309,7 @@ TemplateField.s: TemplateField.cpp.s
 
 # target to generate assembly for a file
 TemplateField.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/TemplateField.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/TemplateField.cpp.s
 .PHONY : TemplateField.cpp.s
 
 VDM.o: VDM.cpp.o
@@ -345,7 +318,7 @@ VDM.o: VDM.cpp.o
 
 # target to build an object file
 VDM.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/VDM.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/VDM.cpp.o
 .PHONY : VDM.cpp.o
 
 VDM.i: VDM.cpp.i
@@ -354,7 +327,7 @@ VDM.i: VDM.cpp.i
 
 # target to preprocess a source file
 VDM.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/VDM.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/VDM.cpp.i
 .PHONY : VDM.cpp.i
 
 VDM.s: VDM.cpp.s
@@ -363,35 +336,8 @@ VDM.s: VDM.cpp.s
 
 # target to generate assembly for a file
 VDM.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/VDM.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/VDM.cpp.s
 .PHONY : VDM.cpp.s
-
-ZpGMPElement.o: ZpGMPElement.cpp.o
-
-.PHONY : ZpGMPElement.o
-
-# target to build an object file
-ZpGMPElement.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ZpGMPElement.cpp.o
-.PHONY : ZpGMPElement.cpp.o
-
-ZpGMPElement.i: ZpGMPElement.cpp.i
-
-.PHONY : ZpGMPElement.i
-
-# target to preprocess a source file
-ZpGMPElement.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ZpGMPElement.cpp.i
-.PHONY : ZpGMPElement.cpp.i
-
-ZpGMPElement.s: ZpGMPElement.cpp.s
-
-.PHONY : ZpGMPElement.s
-
-# target to generate assembly for a file
-ZpGMPElement.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ZpGMPElement.cpp.s
-.PHONY : ZpGMPElement.cpp.s
 
 ZpMersenneIntElement.o: ZpMersenneIntElement.cpp.o
 
@@ -399,7 +345,7 @@ ZpMersenneIntElement.o: ZpMersenneIntElement.cpp.o
 
 # target to build an object file
 ZpMersenneIntElement.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ZpMersenneIntElement.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpMersenneIntElement.cpp.o
 .PHONY : ZpMersenneIntElement.cpp.o
 
 ZpMersenneIntElement.i: ZpMersenneIntElement.cpp.i
@@ -408,7 +354,7 @@ ZpMersenneIntElement.i: ZpMersenneIntElement.cpp.i
 
 # target to preprocess a source file
 ZpMersenneIntElement.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ZpMersenneIntElement.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpMersenneIntElement.cpp.i
 .PHONY : ZpMersenneIntElement.cpp.i
 
 ZpMersenneIntElement.s: ZpMersenneIntElement.cpp.s
@@ -417,7 +363,7 @@ ZpMersenneIntElement.s: ZpMersenneIntElement.cpp.s
 
 # target to generate assembly for a file
 ZpMersenneIntElement.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/ZpMersenneIntElement.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpMersenneIntElement.cpp.s
 .PHONY : ZpMersenneIntElement.cpp.s
 
 main.o: main.cpp.o
@@ -426,7 +372,7 @@ main.o: main.cpp.o
 
 # target to build an object file
 main.cpp.o:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/main.cpp.o
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/main.cpp.o
 .PHONY : main.cpp.o
 
 main.i: main.cpp.i
@@ -435,7 +381,7 @@ main.i: main.cpp.i
 
 # target to preprocess a source file
 main.cpp.i:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/main.cpp.i
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/main.cpp.i
 .PHONY : main.cpp.i
 
 main.s: main.cpp.s
@@ -444,7 +390,7 @@ main.s: main.cpp.s
 
 # target to generate assembly for a file
 main.cpp.s:
-	$(MAKE) -f CMakeFiles/Secret_Sharing.dir/build.make CMakeFiles/Secret_Sharing.dir/main.cpp.s
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/main.cpp.s
 .PHONY : main.cpp.s
 
 # Help Target
@@ -455,16 +401,13 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... Secret_Sharing"
+	@echo "... MPCHonestMajority"
 	@echo "... AES_PRG.o"
 	@echo "... AES_PRG.i"
 	@echo "... AES_PRG.s"
 	@echo "... ArithmeticCircuit.o"
 	@echo "... ArithmeticCircuit.i"
 	@echo "... ArithmeticCircuit.s"
-	@echo "... Communication.o"
-	@echo "... Communication.i"
-	@echo "... Communication.s"
 	@echo "... HIM.o"
 	@echo "... HIM.i"
 	@echo "... HIM.s"
@@ -483,9 +426,6 @@ help:
 	@echo "... VDM.o"
 	@echo "... VDM.i"
 	@echo "... VDM.s"
-	@echo "... ZpGMPElement.o"
-	@echo "... ZpGMPElement.i"
-	@echo "... ZpGMPElement.s"
 	@echo "... ZpMersenneIntElement.o"
 	@echo "... ZpMersenneIntElement.i"
 	@echo "... ZpMersenneIntElement.s"

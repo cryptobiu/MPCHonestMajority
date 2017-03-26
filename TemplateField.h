@@ -9,7 +9,6 @@
 #include "AES_PRG.h"
 #include <stdint.h>
 #include <bitset>
-#include "Def.h"
 #include <sstream>
 #include <NTL/GF2E.h>
 #include <NTL/GF2X.h>

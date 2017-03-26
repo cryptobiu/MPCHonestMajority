@@ -2,7 +2,6 @@
 #define HIM_H_
 
 #include <iostream>
-#include "Def.h"
 #include <NTL/GF2E.h>
 #include <NTL/GF2X.h>
 #include <NTL/ZZ_p.h>

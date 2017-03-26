@@ -1,5 +1,8 @@
-#ifndef VDM_H_
-#define VDM_H_
+//
+// Created by meital on 19/03/17.
+//
+#ifndef VDMTranspose_H_
+#define VDMTranspose_H_
 
 #include <vector>
 #include <stdio.h>
@@ -8,16 +11,16 @@
 using namespace NTL;
 
 template<typename FieldType>
-class VDM {
+class VDMTranspose {
 private:
     int m_n,m_m;
     FieldType** m_matrix;
     TemplateField<FieldType> *field;
 public:
-    VDM(int n, int m, TemplateField<FieldType> *field);
-    VDM() {};
-    ~VDM();
-    void InitVDM();
+    VDMTranspose(int n, int m, TemplateField<FieldType> *field);
+    VDMTranspose() {};
+    ~VDMTranspose();
+    void InitVDMTranspose();
     void Print();
     void MatrixMult(std::vector<FieldType> &vector, std::vector<FieldType> &answer);
 
@@ -26,7 +29,7 @@ public:
 
 
 template<typename FieldType>
-VDM<FieldType>::VDM(int n, int m, TemplateField<FieldType> *field) {
+VDMTranspose<FieldType>::VDMTranspose(int n, int m, TemplateField<FieldType> *field) {
     this->m_m = m;
     this->m_n = n;
     this->field = field;
@@ -38,7 +41,7 @@ VDM<FieldType>::VDM(int n, int m, TemplateField<FieldType> *field) {
 }
 
 template<typename FieldType>
-void VDM<FieldType>::allocate(int n, int m, TemplateField<FieldType> *field) {
+void VDMTranspose<FieldType>::allocate(int n, int m, TemplateField<FieldType> *field) {
 
     this->m_m = m;
     this->m_n = n;
@@ -51,16 +54,16 @@ void VDM<FieldType>::allocate(int n, int m, TemplateField<FieldType> *field) {
 }
 
 template<typename FieldType>
-void VDM<FieldType>::InitVDM() {
-    vector<FieldType> alpha(m_n);
-    for (int i = 0; i < m_n; i++) {
+void VDMTranspose<FieldType>::InitVDMTranspose() {
+    vector<FieldType> alpha(m_m);
+    for (int i = 0; i < m_m; i++) {
         alpha[i] = field->GetElement(i + 1);
     }
 
-    for (int i = 0; i < m_n; i++) {
-        m_matrix[i][0] = *(field->GetOne());
+    for (int i = 0; i < m_m; i++) {
+        m_matrix[0][i] = *(field->GetOne());
         for (int k = 1; k < m_n; k++) {
-            m_matrix[i][k] = m_matrix[i][k - 1] * (alpha[i]);
+            m_matrix[k][i] = m_matrix[k-1][i] * (alpha[k]);
         }
     }
 }
@@ -69,7 +72,7 @@ void VDM<FieldType>::InitVDM() {
  * the function print the matrix
  */
 template<typename FieldType>
-void VDM<FieldType>::Print()
+void VDMTranspose<FieldType>::Print()
 {
     for (int i = 0; i < m_m; i++)
     {
@@ -84,7 +87,7 @@ void VDM<FieldType>::Print()
 }
 
 template<typename FieldType>
-void VDM<FieldType>::MatrixMult(std::vector<FieldType> &vector, std::vector<FieldType> &answer)
+void VDMTranspose<FieldType>::MatrixMult(std::vector<FieldType> &vector, std::vector<FieldType> &answer)
 {
     for(int i = 0; i < m_m; i++)
     {
@@ -98,9 +101,11 @@ void VDM<FieldType>::MatrixMult(std::vector<FieldType> &vector, std::vector<Fiel
     }
 
 }
+
+
 //
 template<typename FieldType>
-VDM<FieldType>::~VDM() {
+VDMTranspose<FieldType>::~VDMTranspose() {
     for (int i = 0; i < m_n; i++) {
         delete[] m_matrix[i];
     }
@@ -108,4 +113,4 @@ VDM<FieldType>::~VDM() {
 }
 
 
-#endif /* VDM_H_ */
+#endif /* VDMTranspose_H_ */

@@ -2,17 +2,16 @@
 #define PROTOCOL_H_
 
 #include <stdlib.h>
-#include <MQTTClient.h>
+
 #include "VDM.h"
+#include "VDMTranspose.h"
 #include "HIM.h"
 #include "TGate.h"
 #include "ArithmeticCircuit.h"
-//#include "Communication.h"
 #include <vector>
 #include <iostream>
 #include <fstream>
 #include <chrono>
-#include "Def.h"
 #include "TemplateField.h"
 #include "ProtocolTimer.h"
 #include "MPCCommunication.h"
@@ -38,6 +37,7 @@ private:
     ProtocolTimer* protocolTimer;
     int currentCirciutLayer = 0;
     int N, M, T, m_partyId;
+    string s;
     int numOfInputGates, numOfOutputGates;
     string inputsFile, outputFile, ADDRESS;
     vector<FieldType> beta;
@@ -48,7 +48,13 @@ private:
 
     HIM<FieldType> matrix_him;
     VDM<FieldType> matrix_vand;
+    VDMTranspose<FieldType> matrix_vand_transpose;
+
     HIM<FieldType> m;
+    vector<FieldType> firstRowVandInverse;
+
+
+
 
     //Communication* comm;
     vector<shared_ptr<ProtocolPartyData>>  parties;
@@ -64,13 +70,10 @@ private:
 
 
     vector<int> myInputs;
-    string s;
 
 public:
     Protocol(int n, int id,TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile, string address,
              ProtocolTimer* protocolTimer);
-    void split(const string &s, char delim, vector<string> &elems);
-    vector<string> split(const string &s, char delim);
 
 
     void roundFunctionSync(vector<vector<byte>> &sendBufs, vector<vector<byte>> &recBufs, int round);
@@ -86,7 +89,8 @@ public:
      * 2. Preparation Phase
      * 3. Input Phase
      * 4. Computation Phase
-     * 5. Output Phase
+     * 5. Verification Phase
+     * 6. Output Phase
      */
     void run(int iteration);
 
@@ -99,7 +103,8 @@ public:
      * We describe the protocol initialization.
      * In particular, some global variables are declared and initialized.
      */
-    void initializationPhase(/*HIM<FieldType> &matrix_him, VDM<FieldType> &matrix_vand, HIM<FieldType> &m*/);
+    void initializationPhase();
+    void initFirstRowInvVDM();
 
     /**
      * A random double-sharing is a pair of two sharings of the same random value, where the one sharing is
@@ -155,54 +160,22 @@ public:
      */
     bool broadcast(int party_id, vector<byte> myMessage, vector<vector<byte>> &recBufsdiffBytes, HIM<FieldType> &mat);
 
-    /**
-     * For multiplication and for output gates, we need public reconstruction of sharings (degree t and degree 2t).
-     * The straight-forward protocol requires n^2 communication, which is too slow.
-     * We present a protocol which efficiently reconstructs n − t sharings. The basic idea is to compute t shared
-     * authentication checks and to reconstruct the n sharings, one towards each party, who then computes the
-     * secret and sends it to everybody. Each party receives n − t secrets and t authentication checks.
-     *
-     * Protocol Public-Reconstruction:
-     * 0. Every party Pi holds a vector x(i) of degree-d shares of n−t secret values x. Let M be a t-by-(n−t)
-     *  hyper-invertible matrix.
-     * 1. ∀i: Compute y(i) = M*x(i) and append it to x(i). Note that this is now a vector of length n.
-     * 2. ∀i,j: Pi sends xj to Pj.
-     * 3. ∀j: Pj checks that {xj}i are d-consistent (otherwise cry), and interpolate them to xj.
-     * 4. ∀j,i: Pj sends xj to Pi.
-     * 5. ∀i: Pi checks that (xn−t,...,xn) = M*(x1,...,xn−t), otherwise cry.
-     *
-     * However, in our protocol, arbitrary many sharings can be reconstructed.
-     * This is achieved by dividing the sharings into buckets of size n − t.
-     */
-    void publicReconstruction(vector<FieldType> &myShares, int &count, int d, vector<FieldType> &valBuf, HIM<FieldType> &m);
 
     /**
-     * The input phase proceeds in two steps: input preparation and input adjustment
-     * First, input preparation -
-     *      for each input gate, a prepared t-sharings is reconstructed towards the party giving input.
-     * Then, input adjustment -
-     *      the party broadcasts for each input gate the difference between the random secret and the actual input value.
-     *
-     * Note that the first step can still be performed in to offline phase.
+     * The input phase proceeds in two steps:
+     * First, for each input gate, the party owning the input creates shares for that input by choosing a random coefficients for the polynomial
+     * Then, all the shares are sent to the relevant party
      */
-    bool inputPreparation();
+    void inputPhase();
 
-    /**
-      * The input phase proceeds in two steps: input preparation and input adjustment
-      * First, input preparation -
-      *      for each input gate, a prepared t-sharings is reconstructed towards the party giving input.
-      * Then, input adjustment -
-      *      the party broadcasts for each input gate the difference between the random secret and the actual input value.
-      *
-      * Note that the first step can still be performed in to offline phase.
-      */
-    void inputAdjustment(string &diff/*, HIM<FieldType> &mat*/);
 
     /**
      * Check whether given points lie on polynomial of degree d.
      * This check is performed by interpolating x on the first d + 1 positions of α and check the remaining positions.
      */
     bool checkConsistency(vector<FieldType>& x, int d);
+
+    FieldType reconstructShare(vector<FieldType>& x, int d);
 
     /**
      * Process all additions which are ready.
@@ -321,22 +294,6 @@ Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, st
     }
 }
 
-template <class FieldType>
-void Protocol<FieldType>::split(const string &s, char delim, vector<string> &elems) {
-    stringstream ss;
-    ss.str(s);
-    string item;
-    while (getline(ss, item, delim)) {
-        elems.push_back(item);
-    }
-}
-
-template <class FieldType>
-vector<string> Protocol<FieldType>::split(const string &s, char delim) {
-    vector<string> elems;
-    split(s, delim, elems);
-    return elems;
-}
 
 /**
  * Protocol Broadcast:
@@ -567,7 +524,7 @@ void Protocol<FieldType>::run(int iteration) {
 
     auto t1start = high_resolution_clock::now();
     auto t1 = high_resolution_clock::now();
-    if(preparationPhase(/*matrix_vand, matrix_him*/) == false) {
+    /*if(preparationPhase() == false) {
         if(flag_print) {
             cout << "cheating!!!" << '\n';}
         return;
@@ -575,7 +532,7 @@ void Protocol<FieldType>::run(int iteration) {
     else {
         if(flag_print) {
             cout << "no cheating!!!" << '\n' << "finish Preparation Phase" << '\n';}
-    }
+    }*/
 
     auto t2 = high_resolution_clock::now();
 
@@ -585,42 +542,24 @@ void Protocol<FieldType>::run(int iteration) {
     }
     protocolTimer->preparationPhaseArr[iteration] =duration;
 
+
+
+
+
     t1 = high_resolution_clock::now();
-    if(inputPreparation() == false) {
-        cout << "cheating!!!" << '\n';
-        if(flag_print) {
-            cout << "cheating!!!" << '\n';}
-        return;
-    }
-    else {
-        if(flag_print) {
-            cout << "no cheating!!!" << '\n' << "finish Input Preparation" << '\n';}
-    }
+
+    inputPhase();
 
     t2 = high_resolution_clock::now();
+
     duration = duration_cast<milliseconds>(t2-t1).count();
     protocolTimer->inputPreparationArr[iteration] = duration;
     if(flag_print_timings) {
-        cout << "time in milliseconds inputPreparation: " << duration << endl;
+        cout << "time in milliseconds computationPhase: " << duration << endl;
     }
-
 
     string sss = "";
 
-    t1 = high_resolution_clock::now();
-
-    inputAdjustment(sss/*, matrix_him*/);
-
-    t2 = high_resolution_clock::now();
-
-    duration = duration_cast<milliseconds>(t2-t1).count();
-    protocolTimer->inputAdjustmentArr[iteration] = duration;
-
-    if(flag_print_timings) {
-        cout << "time in milliseconds inputAdjustment: " << duration << endl;
-    }
-    if(flag_print) {
-        cout << "after Input Adjustment " << '\n'; }
 
      t1 = high_resolution_clock::now();
 
@@ -685,95 +624,87 @@ void Protocol<FieldType>::computationPhase(HIM<FieldType> &m) {
  * @param diff
  */
 template <class FieldType>
-void Protocol<FieldType>::inputAdjustment(string &diff)
+void Protocol<FieldType>::inputPhase()
 {
 
-    //cout<<"in input adjustment"<<endl;
+
+    int robin = 0;
+
+    // the number of random double sharings we need altogether
+    vector<FieldType> x1(N),y1(N);
+    vector<vector<FieldType>> sendBufsElements(N);
+    vector<vector<byte>> sendBufsBytes(N);
+    vector<vector<byte>> recBufBytes(N);
+    vector<vector<FieldType>> recBufElements(N);
+
+
     int input;
     int index = 0;
-
-    vector<FieldType> diffElements;
-    vector<byte> sendBufBytes;
-
-    // read the inputs of the party
-
     vector<int> sizes(N);
+
+    // prepare the shares for the input
     for (int k = 0; k < numOfInputGates; k++)
     {
         if(circuit.getGates()[k].gateType == INPUT) {
+            //get the expected sized from the other parties
             sizes[circuit.getGates()[k].party - 1]++;
 
             if (circuit.getGates()[k].party == m_partyId) {
-                input = myInputs[index];
+                auto input = myInputs[index];
                 index++;
                 if (flag_print) {
                     cout << "input  " << input << endl;
                 }
-                // the value is gateValue[k], but should be input.
-                FieldType myinput = field->GetElement(input);
-                if (flag_print) {
-                    cout << "gateValueArr " << k << "   " << field->elementToString(gateValueArr[k]) << endl;
+                // the value of a_0 is the input of the party.
+                x1[0] = field->GetElement(input);
+
+
+                // generate random degree-T polynomial
+                for(int i = 1; i < T+1; i++)
+                {
+                    // A random field element, uniform distribution
+                    x1[i] = field->Random();
+
                 }
 
-                FieldType different = myinput - gateValueArr[k];
 
-                diffElements.push_back(different);
+                matrix_vand.MatrixMult(x1, y1); // eval poly at alpha-positions predefined to be alpha_i = i
 
+                // prepare shares to be sent
+                for(int i=0; i < N; i++)
+                {
+                    //cout << "y1[ " <<i<< "]" <<y1[i] << endl;
+                    sendBufsElements[i].push_back(y1[i]);
 
+                }
             }
         }
     }
 
     int fieldByteSize = field->getElementSizeInBytes();
-
-    sendBufBytes.resize(diffElements.size()*fieldByteSize);
-    for(int j=0; j<diffElements.size();j++) {
-        field->elementToBytes(sendBufBytes.data() + (j * fieldByteSize), diffElements[j]);
-    }
-
-    if(flag_print) {
-        cout << "try to print diff" << '\n';
-        cout << diff << '\n';}
-
-    vector<vector<byte>> recBufsdiffBytes(N);
-    vector<vector<FieldType>> recBufsdiffElements(N);
-
-    //adjust the size of the difference we need to recieve
-    for(int i=0; i<N; i++){
-
-        //cout<< "the size of diff for " << i << " = " <<sizes[i]<<endl;
-        recBufsdiffBytes[i].resize(sizes[i]*fieldByteSize);
-    }
-
-    // Broadcast the difference between GateValue[k] to x.
-    if(broadcast(m_partyId, sendBufBytes, recBufsdiffBytes, matrix_him) == false) {
-        if(flag_print) {
-            cout << "cheating!!!" << '\n';}
-        return;
-    }
-    else {
-        if(flag_print) {
-            cout << "no cheating!!!" <<  '\n' << "finish Broadcast" << '\n';}
-    }
-
-    if(flag_print) {
-
-        cout << "recBufsdiff" << endl;
-        for (int k = 0; k < N; k++) {
-           // cout << "recBufsdiff" << k << "  " << recBufsdiff[k] << endl;
-        }
-    }
-    // handle after broadcast
-    FieldType db;
-
-    //turn the elements to bytes
     for(int i=0; i < N; i++)
     {
-        recBufsdiffElements[i].resize((recBufsdiffBytes[i].size()) / fieldByteSize);
-        for(int j=0; j<recBufsdiffElements[i].size();j++) {
-            recBufsdiffElements[i][j] = field->bytesToElement(recBufsdiffBytes[i].data() + ( j * fieldByteSize));
+        sendBufsBytes[i].resize(sendBufsElements[i].size()*fieldByteSize);
+        //cout<< "size of sendBufs1Elements["<<i<<" ].size() is " << sendBufs1Elements[i].size() <<"myID =" <<  m_partyId<<endl;
+        recBufBytes[i].resize(sizes[i]*fieldByteSize);
+        for(int j=0; j<sendBufsElements[i].size();j++) {
+            field->elementToBytes(sendBufsBytes[i].data() + (j * fieldByteSize), sendBufsElements[i][j]);
         }
     }
+
+
+    roundFunctionSync(sendBufsBytes, recBufBytes,10);
+
+
+    //turn the bytes to elements
+    for(int i=0; i < N; i++)
+    {
+        recBufElements[i].resize((recBufBytes[i].size()) / fieldByteSize);
+        for(int j=0; j<recBufElements[i].size();j++) {
+            recBufElements[i][j] = field->bytesToElement(recBufBytes[i].data() + ( j * fieldByteSize));
+        }
+    }
+
 
 
     vector<int> counters(N);
@@ -786,9 +717,9 @@ void Protocol<FieldType>::inputAdjustment(string &diff)
     {
         if(circuit.getGates()[k].gateType == INPUT)
         {
-            db = recBufsdiffElements[circuit.getGates()[k].party - 1][counters[circuit.getGates()[k].party - 1]];
+            auto share = recBufElements[circuit.getGates()[k].party - 1][counters[circuit.getGates()[k].party - 1]];
             counters[circuit.getGates()[k].party - 1] += 1;
-            gateShareArr[circuit.getGates()[k].output] = gateShareArr[circuit.getGates()[k].output] + db; // adjustment
+            gateShareArr[circuit.getGates()[k].output] = share; // set the share sent from the party owning the input
 
         }
     }
@@ -864,6 +795,10 @@ void Protocol<FieldType>::initializationPhase()
     matrix_for_2t.InitHIMVectorAndsizes(alpha, 2*T + 1, N-(2*T +1));
 
 
+    //create the first row of the inverse of the nxn vandemonde matrix firstRowVandInverse
+    initFirstRowInvVDM();
+
+
 
     if(flag_print){
         cout<< "matrix_for_t : " <<endl;
@@ -876,198 +811,34 @@ void Protocol<FieldType>::initializationPhase()
 
 
 }
-
-/**
- * The function compute t shared authentication checks and to reconstruct the n sharings,
- * one towards each party, who then computes the secret and sends it to everybody.
- * Each party receives n − t secrets and t authentication checks.
- * Reconstruct a bunch of degree-d sharings to all parties (into ValBuf)
- * @param myShares
- * @param alpha
- * @param valBuf
- */
 template <class FieldType>
-void Protocol<FieldType>::publicReconstruction(vector<FieldType> &myShares, int &count, int d, vector<FieldType> &valBuf, HIM<FieldType> &m)
-{
-    int no_buckets = count / (N-T) + 1;
-    if(flag_print) {
-        cout << "public reconstruction" << endl;
-        cout << "no buckets" << no_buckets << endl; }
-    FieldType x;
+void Protocol<FieldType>::initFirstRowInvVDM(){
+    firstRowVandInverse.resize(N);
 
-    vector<FieldType> x1(N);
-    vector<FieldType> y1(N);
-    vector<FieldType> y2(N);
+    //first calc the multiplication of all the alpha's for the denominator and the diff for the
+    FieldType accumMult = *field->GetOne();
 
-    vector<vector<FieldType>> sendBufsElements(N);
-    vector<vector<byte>> sendBufsBytes(N);
+    for(int i=0; i<N; i++){
+        accumMult*= alpha[i];
 
-    vector<vector<byte>> sendBufs2Bytes(N);
-    vector<vector<FieldType>> sendBufsElements2(N);
-
-    vector<vector<byte>> recBufsBytes(N);
-    vector<vector<byte>> recBufs2Bytes(N);
-
-    for(int i = 0; i < N; i++)
-    {
-        sendBufsElements[i].resize(no_buckets);
-        sendBufsElements2[i].resize(no_buckets);
     }
-    if(flag_print) {
-        for (int i = 0; i < myShares.size(); i++) {
-            cout << "myShares " << i << "   " << myShares[i] << endl;
-        }
-    }
-    // init x to be vector of degree-d (d=2*t) shares of n−t secret
-    for(int k=0; k < no_buckets; k++)
-    {
-        for(int i = 0; i < N-T; i++)
-        {
-            if( k*(N-T)+i < count)
-            {
-                // k*(N-T)+i
-                x1[i] = myShares[k*(N-T)+i];
-            }
-            else
-            {
-                x1[i] = *(field->GetZero());
+
+    FieldType accum = *field->GetOne();
+    for(int j=0; j<N; j++){
+
+        for(int m=0; m<N; m++){
+            if(m!=j) {
+                accum *= (alpha[m] - alpha[j]);
             }
         }
 
-        // compute y = M*x and append it to x
-        m.MatrixMult(x1, y1);
-
-        for(int i = 0; i < T; i++)
-        {
-            x1[N-T+i] = y1[i];
-        }
-
-        // ∀i, j: Pi sends xj to Pj
-        for(int i = 0; i < N; i++)
-        {
-            sendBufsElements[i][k] = x1[i];
-        }
+        firstRowVandInverse[j] = accumMult/alpha[j]/accum;
+        accum = *field->GetOne();
     }
-
-    if(flag_print) {
-        cout << "sendBufs[i]" << endl;
-        for (int i = 0; i < N; i++) {
-            //cout << sendBufs[i] << endl;
-        }
-    }
-
-    int fieldByteSize = field->getElementSizeInBytes();
-
-    for(int i=0; i < N; i++)
-    {
-        sendBufsBytes[i].resize(no_buckets*fieldByteSize);
-        recBufsBytes[i].resize(no_buckets*fieldByteSize);
-        for(int j=0; j<no_buckets;j++) {
-            field->elementToBytes(sendBufsBytes[i].data() + (j * fieldByteSize), sendBufsElements[i][j]);
-        }
-    }
-
-
-    //cout<<"before round function 1"<<endl;
-    //comm->roundfunctionI(sendBufsBytes, recBufsBytes,1);
-    roundFunctionSync(sendBufsBytes, recBufsBytes,1);
-
-    //cout<<"after round function 1"<<endl;
-    if(flag_print) {
-        cout << "recBufs[i]" << endl;
-        for(int i = 0; i < N; i++)
-        {
-            //cout << recBufs[i] << endl;
-        }}
-    //   cout << "after roundfunction1" << '\n';
-    for(int k=0; k < no_buckets; k++) {
-
-        for (int i = 0; i < N; i++) {
-
-            x1[i] = field->bytesToElement(recBufsBytes[i].data() + (k*fieldByteSize));
-        }
-        if(flag_print) {
-            cout << "x1[i]" << endl;
-            for(int i = 0; i < N; i++)
-            {
-                cout << field->elementToString(x1[i]) << endl;
-            } }
-
-        // checking that {xj}i are d-consistent and interpolate them to x j .
-        if (!checkConsistency(x1, d)) {
-            // halt
-            // cheating detected
-            if(flag_print) {
-                cout << "cheating" << '\n';}
-        }
-
-        // interpolate {xj}i to x
-        x = interpolate(x1);
-
-        // send x to all parties
-        for (int i = 0; i < N; i++) {
-            //sendBufs2[i] += field->elementToString(x) + "*";
-            sendBufsElements2[i][k] = x;
-        }
-    }
-
-    for(int i=0; i < N; i++)
-    {
-        sendBufs2Bytes[i].resize(no_buckets*fieldByteSize );
-        recBufs2Bytes[i].resize(no_buckets*fieldByteSize );
-        for(int j=0; j<no_buckets;j++) {
-            field->elementToBytes(sendBufs2Bytes[i].data() + (j * fieldByteSize), sendBufsElements2[i][j]);
-        }
-    }
-
-
-
-    if(flag_print) {
-        cout << "sendBufs2[i]" << endl;
-        for(int i = 0; i < N; i++)
-        {
-            //cout << sendBufs2[i] << endl;
-        } }
-    //comm->roundfunctionI(sendBufs2Bytes, recBufs2Bytes,8);
-    roundFunctionSync(sendBufs2Bytes, recBufs2Bytes,8);
-    if(flag_print) {
-        cout << "recBufs2[i]" << endl;
-        for(int i = 0; i < N; i++)
-        {
-            //cout << recBufs2[i] << endl;
-        } }
-    int index = 0;
-    for(int k=0; k < no_buckets; k++) {
-        for (int i = 0; i < N; i++) {
-
-            x1[i] = field->bytesToElement(recBufs2Bytes[i].data() + (k*fieldByteSize));
-        }
-
-        // checking that (Xn−t,...,Xn) = M*(X1,...,Xn−t)
-        m.MatrixMult(x1, y1);
-
-        for (int i = 0; i < T; i++) {
-            if(x1[N-T+i] != y1[i])
-            {
-                if(flag_print) {
-                    // halt !
-                    cout << "                  cheating" << '\n'; }
-            }
-        }
-
-        for (int i = 0; i < N-T; i++) {
-            if(k*(N-T)+i < count)
-            {
-                valBuf[index] = x1[i];
-                index++;
-            }
-        }
-    }
-
 }
 
 template <class FieldType>
-bool Protocol<FieldType>::preparationPhase(/*VDM<FieldType> &matrix_vand, HIM<FieldType> &matrix_him*/)
+bool Protocol<FieldType>::preparationPhase()
 {
     vector<vector<byte>> recBufsBytes(N);
     //vector<vector<byte>> recBufs1Bytes(N);
@@ -1324,113 +1095,7 @@ bool Protocol<FieldType>::preparationPhase(/*VDM<FieldType> &matrix_vand, HIM<Fi
     return true;
 }
 
-/**
- * the function implements the first step of Input Phase:
- * for each input gate, a prepared t-sharings is reconstructed
- * towards the party giving input
- */
-template <class FieldType>
-bool Protocol<FieldType>::inputPreparation()
-{
-    vector<vector<FieldType>> sendBufsElements(N); // upper bound
-    vector<vector<byte>> sendBufsBytes(N);
 
-    vector<vector<FieldType>> recBufsElements(N);
-    vector<vector<byte>> recBufsBytes(N);
-    vector<FieldType> x1(N); // vector for the shares of my inputs
-    FieldType elem;
-    FieldType secret;
-    int i;
-
-
-    for(int k = 0; k < numOfInputGates; k++)//these are only input gates
-    {
-        gateShareArr[circuit.getGates()[k].output] = sharingBufTElements[k];
-        i = (circuit.getGates())[k].party; // the number of party which has the input
-        // reconstruct sharing towards input party
-       sendBufsElements[i-1].push_back(gateShareArr[circuit.getGates()[k].output]);
-
-    }
-    if(flag_print) {
-        cout << "sendBufs[i] in input preperation" << endl;
-        for (int i = 0; i < N; i++) {
-            //cout << sendBufs[i] << endl;
-        }
-    }
-
-    int fieldByteSize = field->getElementSizeInBytes();
-
-    for(int i=0; i < N; i++)
-    {
-        sendBufsBytes[i].resize(sendBufsElements[i].size()*fieldByteSize);
-        for(int j=0; j<sendBufsElements[i].size();j++) {
-            field->elementToBytes(sendBufsBytes[i].data() + (j * fieldByteSize), sendBufsElements[i][j]);
-        }
-    }
-
-    //cout<<"size of sendbuf" << sendBufsBytes[m_partyId-1].size()<< endl;
-
-    for(int i=0; i<N; i++){
-        recBufsBytes[i].resize(sendBufsBytes[m_partyId-1].size());
-    }
-
-
-    roundFunctionSync(sendBufsBytes, recBufsBytes,6);
-
-    //cout<<"after round function 6";
-    //comm->roundfunctionI(sendBufsBytes, recBufsBytes,6);
-
-    //turn the recbuf into recbuf of elements
-    for(int i=0; i < N; i++)
-    {
-        recBufsElements[i].resize((recBufsBytes[i].size()) / fieldByteSize);
-        for(int j=0; j<recBufsElements[i].size();j++) {
-            recBufsElements[i][j] = field->bytesToElement(recBufsBytes[i].data() + ( j * fieldByteSize));
-        }
-    }
-
-
-    if(flag_print) {
-        for(int k = 0; k < recBufsElements[0].size(); k++) {
-
-            //cout << "roundfunction6 recBufs" << k << " " << recBufsElements[0][k] << endl;
-        } }
-
-    //cout << endl;
-
-    if(flag_print) {
-        for(int k = 0; k < sendBufsElements[0].size(); k++) {
-
-            //cout << "roundfunction6 recBufs" << k << " " << sendBufsElements[0][k] << endl;
-        } }
-
-
-    int counter = 0;
-    // reconstruct my random input values
-    for(int k = 0; k < numOfInputGates; k++) {
-        if (circuit.getGates()[k].party == m_partyId) {
-
-            for (int i = 0; i < N; i++) {
-                x1[i] = recBufsElements[i][counter];
-            }
-            counter++;
-            if(!checkConsistency(x1, T))
-            {
-                // someone cheated!
-                return false;
-            }
-            // the (random) secret
-            secret = interpolate(x1);
-
-            gateValueArr[k] = secret;
-            if(flag_print) {
-                cout << "           the secret is " << field->elementToString(secret) << endl;}
-        }
-    }
-
-    return true;
-
-}
 
 /**
  * Check whether given points lie on polynomial of degree d. This check is performed by interpolating x on
@@ -1520,6 +1185,23 @@ FieldType Protocol<FieldType>::interpolate(vector<FieldType> x)
     return y[0];
 }
 
+
+
+template <class FieldType>
+FieldType Protocol<FieldType>::reconstructShare(vector<FieldType>& x, int d){
+
+    if (!checkConsistency(x, d))
+    {
+        // someone cheated!
+        if(flag_print) {
+            cout << "cheating!!!" << '\n';}
+        exit(0);
+    }
+    else
+        interpolate(x);
+}
+
+
 template <class FieldType>
 int Protocol<FieldType>::processNotMult(){
     int count=0;
@@ -1562,62 +1244,101 @@ int Protocol<FieldType>::processNotMult(){
 template <class FieldType>
 int Protocol<FieldType>::processMultiplications(HIM<FieldType> &m)
 {
-    int count =0;
+
     int index = 0;
-    FieldType p2, d2;
-    FieldType r1, r2;
+
+    vector<FieldType> x1(N),y1(N);
+
+    vector<vector<FieldType>> sendBufsElements(N);
+    vector<vector<byte>> sendBufsBytes(N);
+    vector<vector<byte>> recBufsBytes(N);
     vector<FieldType> valBuf(circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer]); // Buffers for differences
     FieldType d;
     int indexForValBuf = 0;
     vector<FieldType> ReconsBuf(circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer]);
+
+
+    for(int i=0; i < N; i++)
+    {
+        //sendBufs[i] = "";
+
+        sendBufsElements[i].resize(circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer]);
+        sendBufsBytes[i].resize((circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer])*field->getElementSizeInBytes());
+        recBufsBytes[i].resize((circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer])*field->getElementSizeInBytes());
+    }
+
 
     for(int k = circuit.getLayers()[currentCirciutLayer]; k < circuit.getLayers()[currentCirciutLayer+1] ; k++)//go over only the logit gates
     {
         // its a multiplication which not yet processed and ready
         if(circuit.getGates()[k].gateType == MULT )
         {
+            //set the secret of the polynomial to be the multiplication of the shares
+            x1[0] = gateShareArr[circuit.getGates()[k].input1] * gateShareArr[circuit.getGates()[k].input2];
 
-            r1 = sharingBufTElements[shareIndex]; // t-share of random r
-            r2 = sharingBuf2TElements[shareIndex]; // t2-share of same r
+            // generate random degree-T polynomial
+            for(int i = 1; i < T+1; i++)
+            {
+                // A random field element, uniform distribution
+                x1[i] = field->Random();
 
-            shareIndex++;
+            }
 
 
-            p2 = gateShareArr[circuit.getGates()[k].input1] * gateShareArr[circuit.getGates()[k].input2]; // product share (degree-2t)
-            d2 = p2 - r2; // t2-share of difference
-            ReconsBuf[index] = d2; // reconstruct difference (later)
+            matrix_vand.MatrixMult(x1, y1); // eval poly at alpha-positions
+
+            // prepare shares to be sent
+            for(int i=0; i < N; i++)
+            {
+                //cout << "y1[ " <<i<< "]" <<y1[i] << endl;
+                sendBufsElements[i][index] = y1[i];
+            }
+
+        }
+
+    }
+
+    //convert to bytes
+    int fieldByteSize = field->getElementSizeInBytes();
+    for(int i=0; i < N; i++)
+    {
+        for(int j=0; j<sendBufsElements[i].size();j++) {
+            field->elementToBytes(sendBufsBytes[i].data() + (j * fieldByteSize), sendBufsElements[i][j]);
+        }
+    }
+
+    roundFunctionSync(sendBufsBytes, recBufsBytes,4);
+
+    int fieldBytesSize = field->getElementSizeInBytes();
+    index = 0;
+    for(int k = circuit.getLayers()[currentCirciutLayer]; k < circuit.getLayers()[currentCirciutLayer+1] ; k++) {
+
+        if(circuit.getGates()[k].gateType == MULT) {
+            // generate random degree-T polynomial
+            for (int i = 0; i < N; i++) {
+                x1[i] = field->bytesToElement(recBufsBytes[i].data() + (index * fieldBytesSize));
+
+
+            }
+
+            FieldType accum = *field->GetZero();
+            for (int i = 0; i < N; i++) {
+
+                accum += firstRowVandInverse[i] * x1[i];
+
+            }
+
+            gateShareArr[circuit.getGates()[k].output] = accum;
+
             index++;
-            // for now gateShareArr[k] is random sharing, needs to be adjusted (later)
-            gateShareArr[circuit.getGates()[k].output] = r1;
         }
 
     }
 
-    if(index == 0)
-    {
-        return 0;
-    }
-    if(flag_print) {
-        cout <<"index for publicReconstruction " << index << '\n'; }
 
-    // reconstruct the differences into valBuf
-    publicReconstruction(ReconsBuf, index, 2*T, valBuf, m);
-    indexForValBuf = index-1;
 
-    for(int k=circuit.getLayers()[currentCirciutLayer+1]-1 ; k >= circuit.getLayers()[currentCirciutLayer]; k--)
-    {
-        // its a multiplication which not yet processed and ready
-        if(circuit.getGates()[k].gateType == MULT)
-        {
-            if(flag_print) {
-                cout << "indexForValBuf " << indexForValBuf << endl;}
-            d = valBuf[indexForValBuf];  // the difference
-            indexForValBuf--;
-            gateShareArr[circuit.getGates()[k].output] = gateShareArr[circuit.getGates()[k].output] + d; // the adjustment
-            count++;
-        }
-    }
-    return count;
+
+    return index;
 }
 
 
