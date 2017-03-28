@@ -22,7 +22,7 @@ public:
     ~VDMTranspose();
     void InitVDMTranspose();
     void Print();
-    void MatrixMult(std::vector<FieldType> &vector, std::vector<FieldType> &answer);
+    void MatrixMult(std::vector<FieldType> &vector, std::vector<FieldType> &answer, int length);
 
     void allocate(int n, int m, TemplateField<FieldType> *field);
 };
@@ -87,9 +87,9 @@ void VDMTranspose<FieldType>::Print()
 }
 
 template<typename FieldType>
-void VDMTranspose<FieldType>::MatrixMult(std::vector<FieldType> &vector, std::vector<FieldType> &answer)
+void VDMTranspose<FieldType>::MatrixMult(std::vector<FieldType> &vector, std::vector<FieldType> &answer, int length)
 {
-    for(int i = 0; i < m_m; i++)
+    for(int i = 0; i < length; i++)
     {
         // answer[i] = 0
         answer[i] = *(field->GetZero());
