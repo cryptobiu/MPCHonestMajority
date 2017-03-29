@@ -16,6 +16,7 @@
 #include "ProtocolTimer.h"
 #include "MPCCommunication.h"
 #include "../../include/infra/Common.hpp"
+#include "../../include/primitives/Prg.hpp"
 #include <thread>
 
 #define flag_print false
@@ -54,6 +55,8 @@ private:
     vector<FieldType> firstRowVandInverse;
 
 
+    vector<FieldType> randomABShares;//a, b random shares
+    vector<FieldType> c;//a vector of a*b shares
 
 
     //Communication* comm;
@@ -147,7 +150,20 @@ public:
      * We use this algorithm, but extend it to capture an arbitrary number of double-sharings.
      * This is, as usual, achieved by processing multiple buckets in parallel.
      */
-    bool preparationPhase(/*VDM<FieldType> &matrix_vand, HIM<FieldType> &matrix_him*/);
+    bool preparationPhase();
+
+    /**
+     * The aim of this protocol is to produce random triples that will be later used in the main protocol.
+     * The protocol takes as input an integer numOfTriples (the number of triples to output), and proceeds as follows.
+     * 1. The parties call a protocol to generate random shares to obtain 2L random
+     * 2. The parties run a semi-honest multiplication sub protocol to obtain a sharing of a*b
+     */
+    void generateBeaverTriples(int numOfTriples);
+
+    /**
+     * This protocol is secure only in the presence of a semi-honest adversary.
+     */
+    void GRRHonestMultiplication(FieldType *a, FieldType *b, vector<FieldType> &cToFill, int numOfTrupples);
 
     /**
      * We do not need robust broadcast (which we require an involved and expensive sub-protocol).
@@ -183,6 +199,8 @@ public:
     bool checkConsistency(vector<FieldType>& x, int d);
 
     FieldType reconstructShare(vector<FieldType>& x, int d);
+
+    void openShare(int numOfRandomShares, vector<FieldType> &Shares, vector<FieldType> &secrets);
 
     /**
      * Process all additions which are ready.
@@ -236,7 +254,14 @@ public:
      * of the verification algorithm.
      */
     void verificationPhase();
-    byte *generateCommonKey();
+
+
+    vector<byte> generateCommonKey();
+    void generatePseudoRandomElements(vector<byte> & aesKey, vector<FieldType> &randomElementsToFill, int numOfRandomElements);
+
+    bool verificationOfBatchedTriples(FieldType *x, FieldType *y, FieldType *z,
+                                      FieldType *a, FieldType *b, FieldType *c,
+                                      vector<FieldType> randomElements, int numOfTriples);
 
 
     /**
@@ -542,7 +567,7 @@ void Protocol<FieldType>::run(int iteration) {
 
     auto t1start = high_resolution_clock::now();
     auto t1 = high_resolution_clock::now();
-    /*if(preparationPhase() == false) {
+    if(preparationPhase() == false) {
         if(flag_print) {
             cout << "cheating!!!" << '\n';}
         return;
@@ -550,7 +575,7 @@ void Protocol<FieldType>::run(int iteration) {
     else {
         if(flag_print) {
             cout << "no cheating!!!" << '\n' << "finish Preparation Phase" << '\n';}
-    }*/
+    }
 
     auto t2 = high_resolution_clock::now();
 
@@ -587,6 +612,20 @@ void Protocol<FieldType>::run(int iteration) {
 
     duration = duration_cast<milliseconds>(t2-t1).count();
     protocolTimer->computationPhaseArr[iteration] = duration;
+
+
+
+    if(flag_print_timings) {
+        cout << "time in milliseconds computationPhase: " << duration << endl;
+    }
+
+    t1 = high_resolution_clock::now();
+
+    verificationPhase();
+
+    t2 = high_resolution_clock::now();
+    duration = duration_cast<milliseconds>(t2-t1).count();
+    //protocolTimer->outputPhaseArr[iteration] = duration;
 
     if(flag_print_timings) {
         cout << "time in milliseconds computationPhase: " << duration << endl;
@@ -748,13 +787,13 @@ void Protocol<FieldType>::inputPhase()
 
 
 template <class FieldType>
-void Protocol<FieldType>::generateRandomShares(int numOfRnadoms, vector<FieldType>& randomElementsToFill/*, bool is2TShareRequired*/){
+void Protocol<FieldType>::generateRandomShares(int numOfRandoms, vector<FieldType>& randomElementsToFill/*, bool is2TShareRequired*/){
 
 
     int index = 0;
     vector<vector<byte>> recBufsBytes(N);
     int robin = 0;
-    int no_random = randomElementsToFill;
+    int no_random = numOfRandoms;
 
     vector<FieldType> x1(N),y1(N), x2(N),y2(N), t1(N), r1(N), t2(N), r2(N);;
 
@@ -847,7 +886,7 @@ void Protocol<FieldType>::generateRandomShares(int numOfRnadoms, vector<FieldTyp
             t1[i] = field->bytesToElement(recBufsBytes[i].data() + (k * fieldByteSize));
 
         }
-        matrix_vand_transpose.MatrixMult(t1, r1);
+        matrix_vand_transpose.MatrixMult(t1, r1,N-T);
 
         //copy the resulting vector to the array of randoms
         for (int i = 0; i < N - T; i++) {
@@ -975,261 +1014,21 @@ void Protocol<FieldType>::initFirstRowInvVDM(){
 template <class FieldType>
 bool Protocol<FieldType>::preparationPhase()
 {
-    vector<vector<byte>> recBufsBytes(N);
-    //vector<vector<byte>> recBufs1Bytes(N);
-    int robin = 0;
-
-    // the number of random double sharings we need altogether
-    int no_random = circuit.getNrOfMultiplicationGates() + circuit.getNrOfInputGates();
-    vector<FieldType> x1(N),x2(N),y1(N),y2(N);
-
-    vector<vector<FieldType>> sendBufsElements(N);
-    vector<vector<byte>> sendBufsBytes(N);
-
-    // the number of buckets (each bucket requires one double-sharing
-    // from each party and gives N-2T random double-sharings)
-    int no_buckets = (no_random / (N-2*T))+1;
-
-    sharingBufTElements.resize(no_buckets*(N-2*T)); // my shares of the double-sharings
-    sharingBuf2TElements.resize(no_buckets*(N-2*T)); // my shares of the double-sharings
-
-    for(int i=0; i < N; i++)
-    {
-        //sendBufs[i] = "";
-
-        sendBufsElements[i].resize(no_buckets*2);
-        sendBufsBytes[i].resize(no_buckets*2*field->getElementSizeInBytes());
-        recBufsBytes[i].resize(no_buckets*2*field->getElementSizeInBytes());
-    }
-
-    /**
-     *  generate double sharings.
-     *  first degree t.
-     *  subsequent: degree 2t with same secret.
-     */
-    high_resolution_clock::time_point t1 = high_resolution_clock::now();
-    for(int k=0; k < no_buckets; k++)
-    {
-        // generate random degree-T polynomial
-        for(int i = 0; i < T+1; i++)
-        {
-            // A random field element, uniform distribution
-            x1[i] = field->Random();
-
-        }
-
-        x2[0] = x1[0];
-
-
-        for(int i = 1; i < 2*T+1; i++)
-        {
-            // otherwise random
-            x2[i] = field->Random();
-        }
-
-        matrix_vand.MatrixMult(x1, y1); // eval poly at alpha-positions
-        matrix_vand.MatrixMult(x2, y2); // eval poly at alpha-positions
-
-        // prepare shares to be sent
-        for(int i=0; i < N; i++)
-        {
-            //cout << "y1[ " <<i<< "]" <<y1[i] << endl;
-            sendBufsElements[i][2*k] = y1[i];
-            sendBufsElements[i][2*k+1] = y2[i];
-        }
-
-
-
-
-    }//end print one
-
-
-
-    if(flag_print) {
-        for (int i = 0; i < N; i++) {
-            for (int k = 0; k < sendBufsElements[0].size(); k++) {
-
-               // cout << "before roundfunction4 send to " <<i <<" element: "<< k << " " << sendBufsElements[i][k] << endl;
-            }
-        }
-    }
-
-    high_resolution_clock::time_point t2 = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>( t2 - t1 ).count();
-    //cout << "generate random degree-T polynomial took : " <<duration<<" ms"<<endl;
-
-    if(flag_print) {
-        cout << "sendBufs" << endl;
-        cout << "N" << N << endl;
-        cout << "T" << T << endl;
-
-
-
-    }
-//
-    int fieldByteSize = field->getElementSizeInBytes();
-    for(int i=0; i < N; i++)
-    {
-        for(int j=0; j<sendBufsElements[i].size();j++) {
-            field->elementToBytes(sendBufsBytes[i].data() + (j * fieldByteSize), sendBufsElements[i][j]);
-        }
-    }
-
-
-    high_resolution_clock::time_point t3 = high_resolution_clock::now();
-    //comm->roundfunctionI(sendBufsBytes, recBufsBytes,4);
-    roundFunctionSync(sendBufsBytes, recBufsBytes,4);
-    high_resolution_clock::time_point t4 = high_resolution_clock::now();
-    auto duration2 = duration_cast<milliseconds>( t4 - t3 ).count();
-    //cout << "roundfunctionI took : " <<duration2<<" ms"<<endl;
-
-
-
-
-
-
-    if(flag_print) {
-        for (int i = 0; i < N; i++) {
-            for (int k = 0; k < sendBufsBytes[0].size(); k++) {
-
-                cout << "roundfunction4 send to " <<i <<" element: "<< k << " " << (int)sendBufsBytes[i][k] << endl;
-            }
-        }
-    }
-
-    //cout << endl;
-
-    if(flag_print) {
-        for (int i = 0; i < N; i++) {
-            for (int k = 0; k < recBufsBytes[0].size(); k++) {
-                cout << "roundfunction4 receive from " <<i <<" element: "<< k << " " << (int) recBufsBytes[i][k] << endl;
-            }
-        }
-    }
-
-
-    /**
-     * Apply hyper-invertible matrix on each bucket.
-     * From the resulting sharings, 2T are being reconstructed towards some party,
-     * the remaining N-2T are kept as prepared sharings.
-     * For balancing, we do round-robin the party how shall reconstruct and check!
-     */
-
-
-    //vector<vector<FieldType>> sendBufs1Elements(N);
-    //vector<vector<byte>> sendBufs1Bytes(N);
-
-    for(int i=0; i<N; i++){
-        sendBufsElements[i].clear();
-
-    }
-
-    int fieldBytesSize = field->getElementSizeInBytes();
-
-    // x1 : used for the N degree-t sharings
-    // x2 : used for the N degree-2t sharings
-    for(int k=0; k < no_buckets; k++) {
-        // generate random degree-T polynomial
-        for (int i = 0; i < N; i++) {
-            x1[i] = field->bytesToElement(recBufsBytes[i].data() + (2*k*fieldBytesSize));
-            x2[i] = field->bytesToElement(recBufsBytes[i].data() + ((2*k + 1)*fieldBytesSize));
-
-        }
-        matrix_him.MatrixMult(x1, y1);
-        matrix_him.MatrixMult(x2, y2);
-        // these shall be checked
-        for (int i = 0; i < 2 * T; i++) {
-              sendBufsElements[robin].push_back(y1[i]);
-            sendBufsElements[robin].push_back(y2[i]);
-            robin = (robin+1) % N; // next robin
-
-        }
-        // Y1 : the degree-t shares of my poly
-        // Y2 : the degree 2t shares of my poly
-        for (int i = 2 * T; i < N; i++) {
-
-            sharingBufTElements[k*(N-2*T) + i - 2*T] = y1[i];
-            sharingBuf2TElements[k*(N-2*T) + i - 2*T] =  y2[i];
-        }
-
-
-        for (int i=0; i < sendBufsElements.size();i++)
-        {
-            x2[0] = *(field->GetZero());
-            x1[0] = *(field->GetZero());
-        }
-    }
-
-    for(int i=0; i < N; i++)
-    {
-        sendBufsBytes[i].resize(sendBufsElements[i].size()*fieldByteSize);
-        //cout<< "size of sendBufs1Elements["<<i<<" ].size() is " << sendBufs1Elements[i].size() <<"myID =" <<  m_partyId<<endl;
-        recBufsBytes[i].resize(sendBufsElements[m_partyId-1].size()*fieldByteSize);
-        for(int j=0; j<sendBufsElements[i].size();j++) {
-            field->elementToBytes(sendBufsBytes[i].data() + (j * fieldByteSize), sendBufsElements[i][j]);
-        }
-    }
-
-
-    if(flag_print) {
-        cout << "before round" << endl;}
-    //comm->roundfunctionI(sendBufs1Bytes, recBufsBytes,5);
-
-
-    t3 = high_resolution_clock::now();
-    //comm->roundfunctionI(sendBufsBytes, recBufsBytes,4);
-    roundFunctionSync(sendBufsBytes, recBufsBytes,5);
-    t4 = high_resolution_clock::now();
-    duration2 = duration_cast<milliseconds>( t4 - t3 ).count();
-    //cout << "roundfunction 5 took : " <<duration2<<" ms"<<endl;
-
-
-
-    //cout<<"after round function 5"<<endl;
-    if(flag_print) {
-        cout << "after round" << endl;}
-    int count = no_buckets * (2*T) / N; // nr of sharings *I* have to check
-    // got one in the last round
-    if(no_buckets * (2*T)%N > m_partyId) { // maybe -1
-        count++;
-    }
-
-
-    for(int k=0; k < count; k++) {
-        for (int i = 0; i < N; i++) {
-
-            x1[i] = field->bytesToElement(recBufsBytes[i].data() + (2*k*fieldBytesSize));
-            x2[i] = field->bytesToElement(recBufsBytes[i].data() + ((2*k +1)*fieldBytesSize));
-        }
-
-
-        vector<FieldType> x_until_d(N);
-        for(int i=0; i<T; i++)
-        {
-            x_until_d[i] = x1[i];
-        }
-        for(int i=T; i<N; i++)
-        {
-            x_until_d[i] = *(field->GetZero());
-        }
-        if(flag_print) {
-
-            //  cout <<"k "<<k<< "tinterpolate(x1).toString()  " << tinterpolate(x_until_d).toString() << endl;
-            cout << "k " << k << "interpolate(x1).toString()  " << field->elementToString(interpolate(x1)) << endl;
-            cout << "k " << k << "interpolate(x2).toString()  " << field->elementToString(interpolate(x2)) << endl;
-        }
-        // Check that x1 is t-consistent and x2 is 2t-consistent and secret is the same
-        if(!checkConsistency(x1,T) || !checkConsistency(x2,2*T) ||
-                (interpolate(x1)) != (interpolate(x2)))  {
-            // cheating detected, abort
-            if(flag_print) {
-                cout << "k" << k<< endl;}
-            return false;
-        }
-    }
-    return true;
+    generateBeaverTriples(circuit.getNrOfMultiplicationGates());
 }
 
+template <class FieldType>
+void Protocol<FieldType>::generateBeaverTriples(int numOfTriples){
+
+    randomABShares.resize(numOfTriples*2);//a, b random shares
+    c.resize(numOfTriples);//a vector of a*b shares
+
+    //first generate 2*numOfTriples random shares
+    generateRandomShares(numOfTriples,randomABShares);
+
+    GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
+
+}
 
 
 /**
@@ -1469,11 +1268,90 @@ int Protocol<FieldType>::processMultiplications()
 
     }
 
-
-
-
     return index;
 }
+
+template <class FieldType>
+void Protocol<FieldType>::GRRHonestMultiplication(FieldType *a, FieldType *b, vector<FieldType> &cToFill, int numOfTrupples)
+{
+
+    vector<FieldType> x1(N),y1(N);
+
+    vector<vector<FieldType>> sendBufsElements(N);
+    vector<vector<byte>> sendBufsBytes(N);
+    vector<vector<byte>> recBufsBytes(N);
+
+    FieldType d;
+
+    vector<FieldType> ReconsBuf(numOfTrupples);
+
+
+    for(int i=0; i < N; i++)
+    {
+        sendBufsElements[i].resize(circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer]);
+        sendBufsBytes[i].resize((circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer])*field->getElementSizeInBytes());
+        recBufsBytes[i].resize((circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer])*field->getElementSizeInBytes());
+    }
+
+
+    for(int k = 0; k < numOfTrupples ; k++)//go over only the logit gates
+    {
+
+        //set the secret of the polynomial to be the multiplication of the shares
+        x1[0] = a[k] * b[k];
+
+        // generate random degree-T polynomial
+        for(int i = 1; i < T+1; i++)
+        {
+            // A random field element, uniform distribution
+            x1[i] = field->Random();
+
+        }
+
+        matrix_vand.MatrixMult(x1, y1, T+1); // eval poly at alpha-positions
+
+        // prepare shares to be sent
+        for(int i=0; i < N; i++)
+        {
+            //cout << "y1[ " <<i<< "]" <<y1[i] << endl;
+            sendBufsElements[i][k] = y1[i];
+        }
+
+    }
+
+    //convert to bytes
+    int fieldByteSize = field->getElementSizeInBytes();
+    for(int i=0; i < N; i++)
+    {
+        for(int j=0; j<sendBufsElements[i].size();j++) {
+            field->elementToBytes(sendBufsBytes[i].data() + (j * fieldByteSize), sendBufsElements[i][j]);
+        }
+    }
+
+    roundFunctionSync(sendBufsBytes, recBufsBytes,4);
+
+    int fieldBytesSize = field->getElementSizeInBytes();
+
+    for(int k = 0; k < numOfTrupples ; k++) {
+
+       // generate random degree-T polynomial
+        for (int i = 0; i < N; i++) {
+            x1[i] = field->bytesToElement(recBufsBytes[i].data() + (k * fieldBytesSize));
+        }
+
+        FieldType accum = *field->GetZero();
+        for (int i = 0; i < N; i++) {
+
+            accum += firstRowVandInverse[i] * x1[i];
+
+        }
+
+        cToFill[k] = accum;
+    }
+
+}
+
+
 
 
 /**
@@ -1500,15 +1378,81 @@ void Protocol<FieldType>::processRandoms()
 
 
 template <class FieldType>
-byte *Protocol<FieldType>::generateCommonKey(){
+void Protocol<FieldType>::verificationPhase(){
+
+    //get the number of random elements to create
+    int numOfRandomelements = circuit.getNrOfMultiplicationGates();
+    //first generate the common aes key
+    auto key = generateCommonKey();
+
+    //print key
+    //if(flag_print) {
+        for (int i = 0; i < key.size(); i++) {
+            cout << "key[" << i << "] for party :" << m_partyId << "is : " << (int) key[i] << endl;
+        }
+    //}
+    vector<FieldType> randomElements(numOfRandomelements);
+    generatePseudoRandomElements(key, randomElements, numOfRandomelements);
+
+    //print key
+    //if(flag_print) {
+    for (int i = 0; i<10; i++) {
+        cout << "randomElements[" << i << "] for party :" << m_partyId << "is : " << field->elementToString(randomElements[i]) << endl;
+    }
+    //}
+
+    //preapre x,y,z for the verification sub protocol
+
+
+    int numOfOutputGates = circuit.getNrOfOutputGates();
+    int numOfInputGates = circuit.getNrOfInputGates();
+    int numOfMultGates = circuit.getNrOfMultiplicationGates();
+
+    vector<FieldType> x(numOfMultGates);
+    vector<FieldType> y(numOfMultGates);
+    vector<FieldType> z(numOfMultGates);
+
+    int index = 0;
+    for(int k=numOfInputGates-1; k<M-numOfOutputGates + 1;k++){
+
+        auto gate = circuit.getGates()[k];
+
+        if(gate.gateType == MULT){
+            x[index] = gateShareArr[gate.input1];
+            y[index] = gateShareArr[gate.input2];
+            z[index] = gateShareArr[gate.output];
+        }
+
+    }
+
+    //call the verification sub protocol
+    bool answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
+                                 randomABShares.data(), randomABShares.data() + (randomABShares.size()/2), c.data(),
+                                 randomElements, numOfMultGates);
+
+
+    cout<<"Cheating is:" << answer<<endl;
+
+}
+
+
+
+
+template <class FieldType>
+vector<byte> Protocol<FieldType>::generateCommonKey(){
 
     vector<vector<FieldType>> sendBufsElements(N);
     vector<vector<byte>> sendBufsBytes(N);
     vector<vector<byte>> recBufsBytes(N);
 
+    vector<FieldType> x1(N);
+    int fieldByteSize = field->getElementSizeInBytes();
+
     //calc the number of elements needed for 128 bit AES key
     int numOfRandomShares = 16/field->getElementSizeInBytes() + 1;
     vector<FieldType> randomSharesArray(numOfRandomShares);
+    vector<FieldType> aesArray(numOfRandomShares);
+    vector<byte> aesKey(numOfRandomShares*fieldByteSize);
 
 
     //generate enough random shares for the AES key
@@ -1516,13 +1460,207 @@ byte *Protocol<FieldType>::generateCommonKey(){
 
 
 
-    //send the private shares in order to reconstruct the elements
-    for(int i=0; i<numOfRandomShares; i++){
+    //resize vectors
+    for(int i=0; i < N; i++)
+    {
+        sendBufsElements[i].resize(numOfRandomShares);
+        sendBufsBytes[i].resize(numOfRandomShares*fieldByteSize);
+        recBufsBytes[i].resize(numOfRandomShares*fieldByteSize);
+    }
 
+    //set the first sending data buffer
+    for(int j=0; j<numOfRandomShares;j++) {
+        field->elementToBytes(sendBufsBytes[0].data() + (j * fieldByteSize), randomSharesArray[j]);
+    }
+
+    //copy the same data for all parties
+    for(int i=1; i<N; i++){
+
+        sendBufsBytes[i] = sendBufsBytes[0];
+    }
+
+    //call the round function to send the shares to all the users and get the other parties share
+    roundFunctionSync(sendBufsBytes, recBufsBytes,12);
+
+    //reconstruct each set of shares to get the secret
+
+    for(int k=0; k<numOfRandomShares; k++){
+
+        //get the set of shares for each element
+        for(int i=0; i < N; i++) {
+
+            x1[i] = field->bytesToElement(recBufsBytes[i].data() + (k*fieldByteSize));
+        }
+
+
+        aesArray[k] = reconstructShare(x1, T);
+
+    }
+
+    //turn the aes array into bytes to get the common aes key.
+    for(int i=0; i<numOfRandomShares;i++){
+
+        for(int j=0; j<numOfRandomShares;j++) {
+            field->elementToBytes(aesKey.data() + (j * fieldByteSize), aesArray[j]);
+        }
+    }
+
+    //reduce the size of the key to 16 bytes
+    aesKey.resize(16);
+
+    return aesKey;
+
+}
+
+template <class FieldType>
+void Protocol<FieldType>::openShare(int numOfRandomShares, vector<FieldType> &Shares, vector<FieldType> &secrets){
+
+
+    vector<vector<FieldType>> sendBufsElements(N);
+    vector<vector<byte>> sendBufsBytes(N);
+    vector<vector<byte>> recBufsBytes(N);
+
+    vector<FieldType> x1(N);
+    int fieldByteSize = field->getElementSizeInBytes();
+
+    //calc the number of elements needed for 128 bit AES key
+
+    //resize vectors
+    for(int i=0; i < N; i++)
+    {
+        sendBufsElements[i].resize(numOfRandomShares);
+        sendBufsBytes[i].resize(numOfRandomShares*fieldByteSize);
+        recBufsBytes[i].resize(numOfRandomShares*fieldByteSize);
+    }
+
+    //set the first sending data buffer
+    for(int j=0; j<numOfRandomShares;j++) {
+        field->elementToBytes(sendBufsBytes[0].data() + (j * fieldByteSize), Shares[j]);
+    }
+
+    //copy the same data for all parties
+    for(int i=1; i<N; i++){
+
+        sendBufsBytes[i] = sendBufsBytes[0];
+    }
+
+    //call the round function to send the shares to all the users and get the other parties share
+    roundFunctionSync(sendBufsBytes, recBufsBytes,12);
+
+    //reconstruct each set of shares to get the secret
+
+    for(int k=0; k<numOfRandomShares; k++){
+
+        //get the set of shares for each element
+        for(int i=0; i < N; i++) {
+
+            x1[i] = field->bytesToElement(recBufsBytes[i].data() + (k*fieldByteSize));
+        }
+
+
+        secrets[k] = reconstructShare(x1, T);
 
     }
 
 }
+
+
+template <class FieldType>
+void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, vector<FieldType> &randomElementsToFill, int numOfRandomElements){
+
+    bool isLongRandoms;
+    int size;
+    if(field->getElementSizeInBytes()>4){
+        isLongRandoms = true;
+        size = 8;
+    }
+    else{
+
+        isLongRandoms = false;
+        size = 4;
+    }
+
+
+    PrgFromOpenSSLAES prg((numOfRandomElements*size/*field->getElementSizeInBytes()*/)/16 + 1);
+    SecretKey sk(aesKey, "aes");
+    prg.setKey(sk);
+
+    for(int i=0; i<numOfRandomElements; i++){
+
+        if(isLongRandoms)
+            randomElementsToFill[i] = field->GetElement(prg.getRandom64());
+        else
+            randomElementsToFill[i] = field->GetElement(prg.getRandom32());
+    }
+
+}
+
+template <class FieldType>
+bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *y, FieldType *z,
+                                  FieldType *a, FieldType *b, FieldType *c,
+                                  vector<FieldType> randomElements, int numOfTriples){
+
+
+
+    vector<FieldType> r(numOfTriples);//vector holding the random shares generated
+    vector<FieldType> rx(numOfTriples);//vector holding the multiplication of x and r
+    vector<FieldType> firstMult(4*numOfTriples);//vector some computations
+    vector<FieldType> secondMult(4*numOfTriples);//vector some computations
+    vector<FieldType> outputMult(4*numOfTriples);//vector holding the 4*numOfTriples output of the multiplication
+    vector<FieldType> v(numOfTriples);//vector holding the 4*numOfTriples output of the multiplication
+
+    //first generate numOfTriples random shares
+    generateRandomShares(numOfTriples, r);
+
+    //run semi-honest multiplication on x and r
+    GRRHonestMultiplication(x, r.data(),rx, numOfTriples);
+
+    //prepare the 4k pairs for multiplication
+    for(int k=0; k<numOfTriples; k++){
+
+        firstMult[k*4] = rx[k] + a[k];//the row assignment (look at the paper)
+        secondMult[k*4] = b[k];
+
+        firstMult[k*4+1] = a[k];
+        secondMult[k*4+1] = y[k] + b[k];
+
+        firstMult[k*4+2] = firstMult[k*4];
+        secondMult[k*4+2] = secondMult[k*4+1];
+
+        firstMult[k*4+3] = r[k];
+        secondMult[k*4+3] = z[k];
+
+
+    }
+
+    //run semi-honest multiplication on x and r
+    GRRHonestMultiplication(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
+
+    //compute the output share to check
+    FieldType vk;
+    FieldType VShare;
+    for(int k=0; k<numOfTriples; k++){
+        vk = outputMult[4*k + 3] -c[k] + outputMult[4*k + 1] + outputMult[4*k] - outputMult[4*k + 2];
+        VShare += vk*randomElements[k];
+
+    }
+
+
+    //open [V]
+    vector<FieldType> shareArr(1);
+    vector<FieldType> secretArr(1);
+    shareArr[0] = VShare;
+
+    openShare(1,shareArr,secretArr);
+
+    //check that V=0
+    if(secretArr[0] != *field->GetZero())
+        return false;
+    else
+        return true;
+
+}
+
 
 /**
  * the function Walk through the circuit and reconstruct output gates.
@@ -1584,8 +1722,8 @@ void Protocol<FieldType>::outputPhase()
             if (!checkConsistency(x1, T))
             {
                 // someone cheated!
-                if(flag_print) {
-                    cout << "cheating!!!" << '\n';}
+                //if(flag_print) {
+                    cout << "cheating!!!" << '\n';//}
                 return;
             }
             if(flag_print_output)
