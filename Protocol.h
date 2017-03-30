@@ -263,6 +263,10 @@ public:
                                       FieldType *a, FieldType *b, FieldType *c,
                                       vector<FieldType> randomElements, int numOfTriples);
 
+    bool verificationOfSingleTriples(FieldType *x, FieldType *y, FieldType *z,
+                                      FieldType *a, FieldType *b, FieldType *c,
+                                      vector<FieldType> randomElements, int numOfTriples);
+
 
     /**
      * Walk through the circuit and reconstruct output gates.
@@ -598,7 +602,7 @@ void Protocol<FieldType>::run(int iteration) {
     duration = duration_cast<milliseconds>(t2-t1).count();
     protocolTimer->inputPreparationArr[iteration] = duration;
     if(flag_print_timings) {
-        cout << "time in milliseconds computationPhase: " << duration << endl;
+        cout << "time in milliseconds inputPhase: " << duration << endl;
     }
 
     string sss = "";
@@ -628,7 +632,7 @@ void Protocol<FieldType>::run(int iteration) {
     //protocolTimer->outputPhaseArr[iteration] = duration;
 
     if(flag_print_timings) {
-        cout << "time in milliseconds computationPhase: " << duration << endl;
+        cout << "time in milliseconds verificationPhase: " << duration << endl;
     }
 
     t1 = high_resolution_clock::now();
@@ -1015,6 +1019,8 @@ template <class FieldType>
 bool Protocol<FieldType>::preparationPhase()
 {
     generateBeaverTriples(circuit.getNrOfMultiplicationGates());
+
+    return true;
 }
 
 template <class FieldType>
@@ -1024,7 +1030,7 @@ void Protocol<FieldType>::generateBeaverTriples(int numOfTriples){
     c.resize(numOfTriples);//a vector of a*b shares
 
     //first generate 2*numOfTriples random shares
-    generateRandomShares(numOfTriples,randomABShares);
+    generateRandomShares(numOfTriples*2,randomABShares);
 
     GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
 
@@ -1187,9 +1193,6 @@ int Protocol<FieldType>::processMultiplications()
     vector<vector<byte>> recBufsBytes(N);
     vector<FieldType> valBuf(circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer]); // Buffers for differences
     FieldType d;
-    int indexForValBuf = 0;
-    vector<FieldType> ReconsBuf(circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer]);
-
 
     for(int i=0; i < N; i++)
     {
@@ -1226,8 +1229,10 @@ int Protocol<FieldType>::processMultiplications()
                 //cout << "y1[ " <<i<< "]" <<y1[i] << endl;
                 sendBufsElements[i][index] = y1[i];
             }
+            index++;
 
         }
+
 
     }
 
@@ -1288,9 +1293,9 @@ void Protocol<FieldType>::GRRHonestMultiplication(FieldType *a, FieldType *b, ve
 
     for(int i=0; i < N; i++)
     {
-        sendBufsElements[i].resize(circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer]);
-        sendBufsBytes[i].resize((circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer])*field->getElementSizeInBytes());
-        recBufsBytes[i].resize((circuit.getLayers()[currentCirciutLayer+1]- circuit.getLayers()[currentCirciutLayer])*field->getElementSizeInBytes());
+        sendBufsElements[i].resize(numOfTrupples);
+        sendBufsBytes[i].resize((numOfTrupples)*field->getElementSizeInBytes());
+        recBufsBytes[i].resize((numOfTrupples)*field->getElementSizeInBytes());
     }
 
 
@@ -1421,14 +1426,25 @@ void Protocol<FieldType>::verificationPhase(){
             x[index] = gateShareArr[gate.input1];
             y[index] = gateShareArr[gate.input2];
             z[index] = gateShareArr[gate.output];
+            index++;
         }
+
 
     }
 
     //call the verification sub protocol
-    bool answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
-                                 randomABShares.data(), randomABShares.data() + (randomABShares.size()/2), c.data(),
+   /* bool answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
+                                 randomABShares.data(), randomABShares.data() + numOfMultGates, c.data(),
                                  randomElements, numOfMultGates);
+*/
+
+    //call the verification sub protocol
+    bool answer = verificationOfSingleTriples(x.data(), y.data(), z.data(),
+                                               randomABShares.data(), randomABShares.data() + numOfMultGates, c.data(),
+                                               randomElements, numOfMultGates);
+
+
+
 
 
     cout<<"Cheating is:" << answer<<endl;
@@ -1516,7 +1532,6 @@ template <class FieldType>
 void Protocol<FieldType>::openShare(int numOfRandomShares, vector<FieldType> &Shares, vector<FieldType> &secrets){
 
 
-    vector<vector<FieldType>> sendBufsElements(N);
     vector<vector<byte>> sendBufsBytes(N);
     vector<vector<byte>> recBufsBytes(N);
 
@@ -1528,7 +1543,6 @@ void Protocol<FieldType>::openShare(int numOfRandomShares, vector<FieldType> &Sh
     //resize vectors
     for(int i=0; i < N; i++)
     {
-        sendBufsElements[i].resize(numOfRandomShares);
         sendBufsBytes[i].resize(numOfRandomShares*fieldByteSize);
         recBufsBytes[i].resize(numOfRandomShares*fieldByteSize);
     }
@@ -1660,6 +1674,53 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
         return true;
 
 }
+
+
+
+template <class FieldType>
+bool Protocol<FieldType>::verificationOfSingleTriples(FieldType *x, FieldType *y, FieldType *z,
+                                                       FieldType *a, FieldType *b, FieldType *c,
+                                                       vector<FieldType> randomElements, int numOfTriples){
+
+
+
+    vector<FieldType> roAndSigma(numOfTriples*2);//vector holding the random shares generated
+    vector<FieldType> secretArr(numOfTriples*2);
+    vector<FieldType> secretArrResultsV(numOfTriples);
+
+    vector<FieldType> v(numOfTriples);//vector holding the 4*numOfTriples output of the multiplication
+
+    //prepare the 4k pairs for multiplication
+    for(int k=0; k<numOfTriples; k++){
+
+        roAndSigma[2*k] = randomElements[k]*x[k] + a[k];//ro
+        roAndSigma[2*k + 1] = y[k] + b[k];//sigma
+    }
+
+
+    //open all the shares at once
+    openShare(numOfTriples*2, roAndSigma, secretArr);
+
+    vector<FieldType> shareArrV(numOfTriples);
+
+    //compute the output share array
+    for(int k=0; k<numOfTriples; k++){
+        shareArrV[k] = randomElements[k]*z[k] - c[k] + roAndSigma[2*k+1]*a[k]+ roAndSigma[2*k]*b[k] - roAndSigma[2*k] * roAndSigma[2*k + 1];
+    }
+
+    openShare(numOfTriples,shareArrV,secretArrResultsV);
+
+    //check that V=0 for each element
+    for(int i=0; i< numOfTriples; i++){
+        if(secretArrResultsV[i] != *field->GetZero())
+            return false;
+    }
+
+    return true;
+
+
+}
+
 
 
 /**
