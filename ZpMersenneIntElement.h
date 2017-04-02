@@ -29,7 +29,7 @@ public: //TODO return to private after tesing
 public:
 
     ZpMersenneIntElement(){elem = 0;};
-    ZpMersenneIntElement(int elem);
+    ZpMersenneIntElement(unsigned int elem);
 
     ZpMersenneIntElement& operator=(const ZpMersenneIntElement& other);
     inline bool operator!=(const ZpMersenneIntElement& other){ return !(other.elem == elem); };

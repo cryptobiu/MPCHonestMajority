@@ -41,7 +41,7 @@
 int main(int argc, char* argv[])
 {
 
-    /*int timesfield = 1000000;
+/*    int timesfield = 1000000;
     ZZ_p::init(ZZ(2147483647));
 
     //testing the mersenne field
@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    int times = 5;
+    int times = 1;
     string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + ".csv";
     ProtocolTimer p(times, outputTimerFileName);
 

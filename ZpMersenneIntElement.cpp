@@ -34,13 +34,26 @@ ZpMersenneIntElement& ZpMersenneIntElement::operator=(const ZpMersenneIntElement
 }
 
 
-ZpMersenneIntElement::ZpMersenneIntElement(int elem) {
+ZpMersenneIntElement::ZpMersenneIntElement(unsigned int elem) {
 
-    this->elem = elem %p;
+    /*this->elem = elem %p;
 
     if(this->elem<0){
         this->elem = elem + p;
+    }*/
+
+    this->elem = elem;
+
+    if(this->elem<p){
+        return;
     }
+    this->elem -=p;
+
+    if(this->elem<p){
+        return;
+    }
+
+    this->elem -=p;
 
 }
 ZpMersenneIntElement ZpMersenneIntElement::operator-(const ZpMersenneIntElement& f2)
@@ -77,7 +90,7 @@ ZpMersenneIntElement ZpMersenneIntElement::operator*(const ZpMersenneIntElement&
 {
 
 
-    ZpMersenneIntElement answer(p);
+    ZpMersenneIntElement answer;
 
 
     long multLong = (long)elem * (long) f2.elem;
