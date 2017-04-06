@@ -80,7 +80,7 @@ ZpMersenneIntElement ZpMersenneIntElement::operator+(const ZpMersenneIntElement&
 
     answer.elem = (elem + f2.elem);
 
-    if(answer.elem>p)
+    if(answer.elem>=p)
         answer.elem-=p;
 
     return answer;
@@ -104,7 +104,7 @@ ZpMersenneIntElement ZpMersenneIntElement::operator*(const ZpMersenneIntElement&
     answer.elem = bottom + top;
 
     //maximim the value of 2p-2
-    if(answer.elem>p)
+    if(answer.elem>=p)
         answer.elem-=p;
 
     //answer.elem = ((long)elem * (long) f2.elem) %p;
@@ -129,7 +129,7 @@ ZpMersenneIntElement& ZpMersenneIntElement::operator*=(const ZpMersenneIntElemen
     elem = bottom + top;
 
     //maximim the value of 2p-2
-    if(elem>p)
+    if(elem>=p)
         elem-=p;
 
     return *this;
