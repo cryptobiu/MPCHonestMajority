@@ -12,7 +12,7 @@ INCLUDE_DIRECTORIES($ENV{HOME}/ntl-9.10.0/include $ENV{HOME} ${BOOST_INCLUDEDIR}
         $ENV{HOME}/libscapi/lib/OTExtensionBristol $ENV{HOME}/libscapi/lib/)
 
 set(SOURCE_FILES AES_PRG.cpp HIM.cpp main.cpp VDM.cpp MPCCommunication.cpp MPCCommunication.h
-        TGate.h ArithmeticCircuit.cpp Protocol.cpp Protocol.h TemplateField.h TemplateField.cpp ProtocolTimer.cpp ProtocolTimer.h 			ZpMersenneIntElement.cpp ZpMersenneIntElement.h)
+        TGate.h ArithmeticCircuit.cpp Protocol.cpp Protocol.h TemplateField.h TemplateField.cpp ProtocolTimer.cpp ProtocolTimer.h 			ZpMersenneIntElement.cpp ZpMersenneIntElement.h HonestMultAbstract.h GRRHonestMult.h DNHonestMult.h)
 
 
 link_directories(/usr/ssl/lib/ $ENV{HOME}/libscapi/install/lib ${BOOST_LIBRARYDIR})

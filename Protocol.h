@@ -6,6 +6,8 @@
 #include "VDM.h"
 #include "VDMTranspose.h"
 #include "HIM.h"
+#include "GRRHonestMult.h"
+#include "DNHonestMult.h"
 #include "TGate.h"
 #include "ArithmeticCircuit.h"
 #include <vector>
@@ -29,15 +31,24 @@ using namespace std::chrono;
 
 template <class FieldType>
 class Protocol {
+
+public:
+    int N, M, T, m_partyId;
+    VDM<FieldType> matrix_vand;
+    vector<FieldType> firstRowVandInverse;
+    TemplateField<FieldType> *field;
+    vector<shared_ptr<ProtocolPartyData>>  parties;
 private:
     /**
      * N - number of parties
      * M - number of gates
      * T - number of malicious
      */
+
+    string genRandomSharesType, multType, verifyType;
     ProtocolTimer* protocolTimer;
     int currentCirciutLayer = 0;
-    int N, M, T, m_partyId;
+
     string s;
     int numOfInputGates, numOfOutputGates;
     string inputsFile, outputFile, ADDRESS;
@@ -45,14 +56,14 @@ private:
     HIM<FieldType> matrix_for_interpolate;
     HIM<FieldType> matrix_for_t;
     HIM<FieldType> matrix_for_2t;
-    TemplateField<FieldType> *field;
+
 
     HIM<FieldType> matrix_him;
-    VDM<FieldType> matrix_vand;
+
     VDMTranspose<FieldType> matrix_vand_transpose;
 
     HIM<FieldType> m;
-    vector<FieldType> firstRowVandInverse;
+
 
 
     vector<FieldType> randomABShares;//a, b random shares
@@ -63,7 +74,7 @@ private:
     vector<FieldType> randomTAnd2TShares;
 
 
-    vector<shared_ptr<ProtocolPartyData>>  parties;
+
     boost::asio::io_service io_service;
     ArithmeticCircuit circuit;
     vector<FieldType> gateValueArr; // the value of the gate (for my input and output gates)
@@ -75,11 +86,14 @@ private:
     int shareIndex;
 
 
+    HonestMultAbstract<FieldType> *honestMult;//
+
     vector<int> myInputs;
 
 public:
-    Protocol(int n, int id,TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile, string address,
-             ProtocolTimer* protocolTimer);
+    Protocol(int n, int id,TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
+             ProtocolTimer* protocolTimer,
+             string genRandomSharesType = "HIM", string multType = "GRR", string verifyType = "Batch");
 
 
     void roundFunctionSync(vector<vector<byte>> &sendBufs, vector<vector<byte>> &recBufs, int round);
@@ -171,6 +185,8 @@ public:
      * This protocol is secure only in the presence of a semi-honest adversary.
      */
     void GRRHonestMultiplication(FieldType *a, FieldType *b, vector<FieldType> &cToFill, int numOfTrupples);
+
+    void DNHonestMultiplication(FieldType *a, FieldType *b, vector<FieldType> &cToFill, int numOfTrupples);
 
     void offlineDNForMultiplication(int numOfTriples);
 
@@ -295,12 +311,29 @@ public:
 
 
 template <class FieldType>
-Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile, string address,
-                              ProtocolTimer* protocolTimer)
+Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
+                              ProtocolTimer* protocolTimer,
+                              string genRandomSharesType, string multType, string verifyType)
 {
+
+    this->genRandomSharesType = genRandomSharesType;
+    this->multType = multType;
+    this->verifyType = verifyType;
+
+    //honestMult = new GRRHonestMult<FieldType>();
+
+    if(multType=="GRR"){
+        honestMult = new GRRHonestMult<FieldType>(this);
+    }
+    if(multType=="DN"){
+        if(verifyType=="Single")
+            honestMult = new DNHonestMult<FieldType>(circuit.getNrOfMultiplicationGates(), this);
+        else if(verifyType=="Batch")
+            honestMult = new DNHonestMult<FieldType>(6*circuit.getNrOfMultiplicationGates(), this);
+    }
+
     this->protocolTimer = protocolTimer;
     this->field = field;
-    ADDRESS = address;
     //comm = Communication::getInstance(n, id, address);
     N = n;
     T = n/2 - 1;
@@ -325,7 +358,9 @@ Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, st
 
     //boost::asio::io_service io_service;
 
-    parties = MPCCommunication::setCommunication(io_service, m_partyId-1, N, "Parties.txt");
+    MPCCommunication comm;
+
+    parties = comm.setCommunication(io_service, m_partyId-1, N, "Parties.txt");
 
     string tmp = "init times";
     //cout<<"before sending any data"<<endl;
@@ -1166,10 +1201,15 @@ void Protocol<FieldType>::initFirstRowInvVDM(){
 template <class FieldType>
 bool Protocol<FieldType>::preparationPhase()
 {
-    generateBeaverTriples(circuit.getNrOfMultiplicationGates());
 
     //generate triples for the DN multiplication protocol
-    offlineDNForMultiplication(circuit.getNrOfMultiplicationGates());
+    //if(multType=="DN")
+        offlineDNForMultiplication(circuit.getNrOfMultiplicationGates());
+
+    honestMult->invokeOffline();
+
+    generateBeaverTriples(circuit.getNrOfMultiplicationGates());
+
 
     return true;
 }
@@ -1183,7 +1223,9 @@ void Protocol<FieldType>::generateBeaverTriples(int numOfTriples){
     //first generate 2*numOfTriples random shares
     generateRandomShares(numOfTriples*2,randomABShares);
 
-    GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
+    //GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
+    //honestMult->mult(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
+    DNHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
 
 }
 
@@ -1335,148 +1377,12 @@ template <class FieldType>
 int Protocol<FieldType>::processMultiplications(int lastMultGate)
 {
 
-    //return processMultGRR();
-    return processMultDN(lastMultGate);
+    if(multType=="GRR")
+        return processMultGRR();
+    else if(multType=="DN")
+        return processMultDN(lastMultGate);
 
 }
-
-
-/*template <class FieldType>
-int Protocol<FieldType>::processMultDN(int indexInRandomArray) {
-
-    int index = 0;
-    int numOfMultGates = circuit.getNrOfMultiplicationGates();
-    int fieldByteSize = field->getElementSizeInBytes();
-    int maxNumberOfLayerMult = circuit.getLayers()[currentCirciutLayer + 1] - circuit.getLayers()[currentCirciutLayer];
-    vector<FieldType> xPlusAAndYPlusBShares(maxNumberOfLayerMult * 2);//hold both in the same vector to send in one batch
-    vector<byte> xPlusAAndYPlusBSharesBytes(maxNumberOfLayerMult * 2 * fieldByteSize);//hold both in the same vector to send in one batch
-
-    vector<FieldType> xPlusAAndYPlusB(maxNumberOfLayerMult * 2);//hold both in the same vector to send in one batch
-    vector<byte> xPlusAAndYPlusBBytes(maxNumberOfLayerMult * 2 * fieldByteSize);
-
-    vector<vector<byte>> recBufsBytes;
-
-
-    //generate the shares for x+a and y+b. do it in the same array to send once
-    for (int k = circuit.getLayers()[currentCirciutLayer];
-         k < circuit.getLayers()[currentCirciutLayer + 1]; k++)//go over only the logit gates
-    {
-        auto gate = circuit.getGates()[k];
-
-        if (gate.gateType == MULT) {
-
-            //set the share of x+a
-            xPlusAAndYPlusBShares[2 * index] = gateShareArr[gate.input1] + randomTSharesOfflineMult[indexInRandomArray];
-
-            //set the share of y+b
-            xPlusAAndYPlusBShares[2 * index + 1] = gateShareArr[gate.input2] + randomTSharesOfflineMult[indexInRandomArray + numOfMultGates];
-
-            index++;
-            indexInRandomArray++;
-
-            //set the byte array as well
-        }
-    }
-
-    //set the acctual number of mult gate proccessed in this layer
-    int acctualNumOfMultGates = index;
-
-    if (m_partyId == 1) {
-
-        for(int j=0; j<xPlusAAndYPlusBShares.size();j++) {
-            field->elementToBytes(xPlusAAndYPlusBSharesBytes.data() + (j * fieldByteSize), xPlusAAndYPlusBShares[j]);
-        }
-
-        //just party 1 needs the recbuf
-        recBufsBytes.resize(N);
-
-        for (int i = 0; i < N; i++) {
-            recBufsBytes[i].resize(acctualNumOfMultGates*fieldByteSize*2);
-        }
-
-        //receive the shares from all the other parties
-        roundFunctionSyncForP1(xPlusAAndYPlusBSharesBytes, recBufsBytes);
-
-    }
-    else {//since I am not party 1 parties[0]->getID()=1
-
-        //send the shares to p1
-        parties[0]->getChannel()->write(xPlusAAndYPlusBSharesBytes.data(), xPlusAAndYPlusBSharesBytes.size());
-
-    }
-
-    //reconstruct the shares recieved from the other parties
-    if (m_partyId == 1) {
-
-        vector<FieldType> xPlusA(N), yPlusB(N);
-
-        for (int k = 0;k < acctualNumOfMultGates; k++)//go over only the logit gates
-        {
-            for (int i = 0; i < N; i++) {
-
-                xPlusA[i] = field->bytesToElement(recBufsBytes[i].data() + ((2 * k) * fieldByteSize));
-                yPlusB[i] = field->bytesToElement(recBufsBytes[i].data() + ((2 * k + 1) * fieldByteSize));
-            }
-
-            // reconstruct the shares by P0
-            xPlusAAndYPlusB[2 * k] = interpolate(xPlusA);
-            xPlusAAndYPlusB[2 * k + 1] = interpolate(yPlusB);
-
-            //convert to bytes
-            field->elementToBytes(xPlusAAndYPlusBBytes.data() + (2 * k * fieldByteSize), xPlusAAndYPlusB[2 * k]);
-            field->elementToBytes(xPlusAAndYPlusBBytes.data() + ((2 * k + 1) * fieldByteSize), xPlusAAndYPlusB[2 * k + 1]);
-
-
-        }
-
-        //send the reconstructed vector to all the other parties
-        sendFromP1(xPlusAAndYPlusBBytes);
-    }
-
-    else {//each party get the x+a and y+b reconstruced vector from party 1
-
-        parties[0]->getChannel()->read(xPlusAAndYPlusBBytes.data(), xPlusAAndYPlusBBytes.size());
-    }
-
-
-
-
-    //fill the xPlusAAndYPlusB array for all the parties except for party 1 that already have this array filled
-    if (m_partyId != 1) {
-
-        for (int i = 0; i < acctualNumOfMultGates; i++) {
-
-            xPlusAAndYPlusB[i] = field->bytesToElement(xPlusAAndYPlusBBytes.data() + (i * fieldByteSize));
-        }
-    }
-
-
-
-    indexInRandomArray -= index;
-    index = 0;
-
-    //after the xPlusAAndYPlusB array is filled, we are ready to fill the output of the mult gates
-    for (int k = circuit.getLayers()[currentCirciutLayer];
-         k < circuit.getLayers()[currentCirciutLayer + 1]; k++)//go over only the logit gates
-    {
-        auto gate = circuit.getGates()[k];
-
-        if (gate.gateType == MULT) {
-
-            gateShareArr[gate.output] = cOfflineMult[indexInRandomArray] -
-                                        xPlusAAndYPlusB[2 * index] *
-                                        randomTSharesOfflineMult[indexInRandomArray + numOfMultGates] -
-                                        xPlusAAndYPlusB[2 * index + 1] * randomTSharesOfflineMult[indexInRandomArray] +
-                                        xPlusAAndYPlusB[2 * index] * xPlusAAndYPlusB[2 * index + 1];
-
-            index++;
-            indexInRandomArray++;
-
-        }
-    }
-
-    return index;
-}*/
 
 
 template <class FieldType>
@@ -1551,7 +1457,7 @@ int Protocol<FieldType>::processMultDN(int indexInRandomArray) {
     //reconstruct the shares recieved from the other parties
     if (m_partyId == 1) {
 
-        vector<FieldType> xyMinurAllShares(N), yPlusB(N);
+        vector<FieldType> xyMinurAllShares(N);
 
         for (int k = 0;k < acctualNumOfMultGates; k++)//go over only the logit gates
         {
@@ -1614,6 +1520,116 @@ int Protocol<FieldType>::processMultDN(int indexInRandomArray) {
     return index;
 }
 
+
+
+
+template <class FieldType>
+void Protocol<FieldType>::DNHonestMultiplication(FieldType *a, FieldType *b, vector<FieldType> &cToFill, int numOfTrupples) {
+
+    int index = 0;
+    int numOfMultGates = circuit.getNrOfMultiplicationGates();
+    int fieldByteSize = field->getElementSizeInBytes();
+    vector<FieldType> xyMinusRShares(numOfTrupples);//hold both in the same vector to send in one batch
+    vector<byte> xyMinusRSharesBytes(numOfTrupples *fieldByteSize);//hold both in the same vector to send in one batch
+
+    vector<FieldType> xyMinusR;//hold both in the same vector to send in one batch
+    vector<byte> xyMinusRBytes;
+
+    vector<vector<byte>> recBufsBytes;
+
+    int offset = numOfMultGates*2;
+
+
+    //generate the shares for x+a and y+b. do it in the same array to send once
+    for (int k = 0; k < numOfTrupples; k++)//go over only the logit gates
+    {
+        //compute the share of xy-r
+        xyMinusRShares[index] = a[k]*b[k] - randomTAnd2TShares[offset + 2*k+1];
+
+    }
+
+    //set the acctual number of mult gate proccessed in this layer
+    xyMinusRSharesBytes.resize(numOfTrupples*fieldByteSize);
+    xyMinusR.resize(numOfTrupples);
+    xyMinusRBytes.resize(numOfTrupples*fieldByteSize);
+
+    for(int j=0; j<xyMinusRShares.size();j++) {
+        field->elementToBytes(xyMinusRSharesBytes.data() + (j * fieldByteSize), xyMinusRShares[j]);
+    }
+
+    if (m_partyId == 1) {
+
+
+
+        //just party 1 needs the recbuf
+        recBufsBytes.resize(N);
+
+        for (int i = 0; i < N; i++) {
+            recBufsBytes[i].resize(numOfTrupples*fieldByteSize);
+        }
+
+        //receive the shares from all the other parties
+        roundFunctionSyncForP1(xyMinusRSharesBytes, recBufsBytes);
+
+    }
+    else {//since I am not party 1 parties[0]->getID()=1
+
+        //send the shares to p1
+        parties[0]->getChannel()->write(xyMinusRSharesBytes.data(), xyMinusRSharesBytes.size());
+
+    }
+
+    //reconstruct the shares recieved from the other parties
+    if (m_partyId == 1) {
+
+        vector<FieldType> xyMinurAllShares(N), yPlusB(N);
+
+        for (int k = 0;k < numOfTrupples; k++)//go over only the logit gates
+        {
+            for (int i = 0; i < N; i++) {
+
+                xyMinurAllShares[i] = field->bytesToElement(recBufsBytes[i].data() + (k * fieldByteSize));
+            }
+
+            // reconstruct the shares by P0
+            xyMinusR[k] = interpolate(xyMinurAllShares);
+
+            //convert to bytes
+            field->elementToBytes(xyMinusRBytes.data() + (k * fieldByteSize), xyMinusR[k]);
+
+        }
+
+        //send the reconstructed vector to all the other parties
+        sendFromP1(xyMinusRBytes);
+    }
+
+    else {//each party get the xy-r reconstruced vector from party 1
+
+        parties[0]->getChannel()->read(xyMinusRBytes.data(), xyMinusRBytes.size());
+    }
+
+
+
+
+    //fill the xPlusAAndYPlusB array for all the parties except for party 1 that already have this array filled
+    if (m_partyId != 1) {
+
+        for (int i = 0; i < numOfTrupples; i++) {
+
+            xyMinusR[i] = field->bytesToElement(xyMinusRBytes.data() + (i * fieldByteSize));
+        }
+    }
+
+
+    index = 0;
+
+    //after the xPlusAAndYPlusB array is filled, we are ready to fill the output of the mult gates
+    for (int k = 0; k < numOfTrupples; k++)//go over only the logit gates
+    {
+        cToFill[k] = randomTAnd2TShares[offset + 2*k] + xyMinusR[k];
+    }
+
+}
 
 
 template <class FieldType>
@@ -1918,7 +1934,7 @@ void Protocol<FieldType>::offlineDNForMultiplication(int numOfTriples){
 }
 
 template <class FieldType>
-void Protocol<FieldType>::verificationPhase(){
+void Protocol<FieldType>::verificationPhase() {
 
     //get the number of random elements to create
     int numOfRandomelements = circuit.getNrOfMultiplicationGates();
@@ -1926,7 +1942,7 @@ void Protocol<FieldType>::verificationPhase(){
     auto key = generateCommonKey();
 
     //print key
-    if(flag_print) {
+    if (flag_print) {
         for (int i = 0; i < key.size(); i++) {
             cout << "key[" << i << "] for party :" << m_partyId << "is : " << (int) key[i] << endl;
         }
@@ -1936,8 +1952,9 @@ void Protocol<FieldType>::verificationPhase(){
 
     //print key
     //if(flag_print) {
-    for (int i = 0; i<3; i++) {
-        cout << "randomElements[" << i << "] for party :" << m_partyId << "is : " << field->elementToString(randomElements[i]) << endl;
+    for (int i = 0; i < 3; i++) {
+        cout << "randomElements[" << i << "] for party :" << m_partyId << "is : " <<
+        field->elementToString(randomElements[i]) << endl;
     }
     //}
 
@@ -1953,11 +1970,11 @@ void Protocol<FieldType>::verificationPhase(){
     vector<FieldType> z(numOfMultGates);
 
     int index = 0;
-    for(int k=numOfInputGates-1; k<M-numOfOutputGates + 1;k++){
+    for (int k = numOfInputGates - 1; k < M - numOfOutputGates + 1; k++) {
 
         auto gate = circuit.getGates()[k];
 
-        if(gate.gateType == MULT){
+        if (gate.gateType == MULT) {
             x[index] = gateShareArr[gate.input1];
             y[index] = gateShareArr[gate.input2];
             z[index] = gateShareArr[gate.output];
@@ -1967,18 +1984,26 @@ void Protocol<FieldType>::verificationPhase(){
 
     }
 
-    //call the verification sub protocol
-/*    bool answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
-                                 randomABShares.data(), randomABShares.data() + numOfMultGates, c.data(),
-                                 randomElements, numOfMultGates);
+    bool answer;
+    if (verifyType == "Single") {
 
-*/
-      //call the verification sub protocol
-      bool answer = verificationOfSingleTriples(x.data(), y.data(), z.data(),
-                                                 randomABShares.data(), randomABShares.data() + numOfMultGates, c.data(),
-                                                 randomElements, numOfMultGates);
+        cout<<"verify single for party "<< m_partyId <<endl;
+        //call the verification sub protocol
+        answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
+                                                   randomABShares.data(), randomABShares.data() + numOfMultGates,
+                                                   c.data(),
+                                                   randomElements, numOfMultGates);
+    }
+    else if (verifyType == "Batch")
+    {
+        cout<<"verify batch for party "<< m_partyId <<endl;
+        //call the verification sub protocol
+        answer = verificationOfSingleTriples(x.data(), y.data(), z.data(),
+                                                  randomABShares.data(), randomABShares.data() + numOfMultGates,
+                                                  c.data(),
+                                                  randomElements, numOfMultGates);
 
-
+    }
 
 
 
@@ -2073,34 +2098,34 @@ void Protocol<FieldType>::verificationPhase(){
   }
 
 
-  template <class FieldType>
-  void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, vector<FieldType> &randomElementsToFill, int numOfRandomElements){
+template <class FieldType>
+void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, vector<FieldType> &randomElementsToFill, int numOfRandomElements){
 
-      bool isLongRandoms;
-      int size;
-      if(field->getElementSizeInBytes()>4){
-          isLongRandoms = true;
-          size = 8;
-      }
-      else{
+    bool isLongRandoms;
+    int size;
+    if(field->getElementSizeInBytes()>4){
+      isLongRandoms = true;
+      size = 8;
+    }
+    else{
 
-          isLongRandoms = false;
-          size = 4;
-      }
+      isLongRandoms = false;
+      size = 4;
+    }
 
-      cout<<"size is" << size << "for party : " << m_partyId;
+    cout<<"size is" << size << "for party : " << m_partyId;
 
 
-      PrgFromOpenSSLAES prg((numOfRandomElements*size/*field->getElementSizeInBytes()*/) + 1);
+    PrgFromOpenSSLAES prg((numOfRandomElements*size/*field->getElementSizeInBytes()*/) + 1);
     SecretKey sk(aesKey, "aes");
     prg.setKey(sk);
 
     for(int i=0; i<numOfRandomElements; i++){
 
-        if(isLongRandoms)
-            randomElementsToFill[i] = field->GetElement(prg.getRandom64());
-        else
-            randomElementsToFill[i] = field->GetElement(prg.getRandom32());
+      if(isLongRandoms)
+          randomElementsToFill[i] = field->GetElement(prg.getRandom64());
+      else
+          randomElementsToFill[i] = field->GetElement(prg.getRandom32());
     }
 
 }
@@ -2123,7 +2148,8 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
     generateRandomShares(numOfTriples, r);
 
     //run semi-honest multiplication on x and r
-    GRRHonestMultiplication(x, r.data(),rx, numOfTriples);
+    //GRRHonestMultiplication(x, r.data(),rx, numOfTriples);
+    honestMult->mult(x, r.data(),rx, numOfTriples);
 
     //prepare the 4k pairs for multiplication
     for(int k=0; k<numOfTriples; k++){
@@ -2144,7 +2170,8 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
     }
 
     //run semi-honest multiplication on x and r
-    GRRHonestMultiplication(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
+    //GRRHonestMultiplication(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
+    honestMult->mult(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
 
     //compute the output share to check
     FieldType vk;

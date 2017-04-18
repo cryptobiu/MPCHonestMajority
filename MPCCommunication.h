@@ -26,7 +26,7 @@ public:
 class MPCCommunication {
 
 public:
-    static vector<shared_ptr<ProtocolPartyData>> setCommunication(boost::asio::io_service & io_service, int id, int numParties, string configFile);
+    vector<shared_ptr<ProtocolPartyData>> setCommunication(boost::asio::io_service & io_service, int id, int numParties, string configFile);
 };
 
 

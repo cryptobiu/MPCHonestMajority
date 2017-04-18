@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
 
     return 0;
 */
-    if(argc != 8)
+    if(argc != 7)
     {
         cout << "error";
         return 0;
@@ -137,7 +137,7 @@ int main(int argc, char* argv[])
     string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + ".csv";
     ProtocolTimer p(times, outputTimerFileName);
 
-    string fieldType(argv[7]);
+    string fieldType(argv[6]);
 
 
 
@@ -198,7 +198,7 @@ int main(int argc, char* argv[])
 */
 
 
-        Protocol<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], argv[6], &p);
+        Protocol<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p);
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
             protocol.run(i);
@@ -220,7 +220,7 @@ int main(int argc, char* argv[])
     {
         TemplateField<GF2E> *field = new TemplateField<GF2E>(8);
 
-        Protocol<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], argv[6], &p);
+        Protocol<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p);
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
             protocol.run(i);
@@ -241,7 +241,7 @@ int main(int argc, char* argv[])
     {
         TemplateField<ZZ_p> * field = new TemplateField<ZZ_p>(2147483647);
 
-        Protocol<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], argv[6], &p);
+        Protocol<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], &p);
 
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
