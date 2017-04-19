@@ -127,9 +127,9 @@ int main(int argc, char* argv[])
 
     return 0;
 */
-    if(argc != 7)
+    if(argc < 7)
     {
-        cout << "error";
+        cout << "wrong number of arguments";
         return 0;
     }
 

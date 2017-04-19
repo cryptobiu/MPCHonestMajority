@@ -18,7 +18,7 @@ public:
 
     int *preparationPhaseArr;
     int* inputPreparationArr;
-    int* inputAdjustmentArr;
+    int* verificationPhaseArr;
     int* computationPhaseArr;
     int* outputPhaseArr;
     int* totalTimeArr;
@@ -30,7 +30,7 @@ public:
 
     ~ProtocolTimer(){ delete[] preparationPhaseArr;
                       delete[] inputPreparationArr;
-                      delete[] inputAdjustmentArr;
+                      delete[] verificationPhaseArr;
                       delete[] computationPhaseArr;
                       delete[] outputPhaseArr;
                       delete[] totalTimeArr;}

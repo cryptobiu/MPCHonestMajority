@@ -11,20 +11,20 @@ void ProtocolTimer::writeToFile() {
     myfile.open (fileName);
     myfile << "-------------Timings-----------.\n";
     //columns header
-    myfile << "preparationPhaseArr,inputPreparationArr,inputAdjustmentArr,computationPhaseArr,outputPhaseArr, totalTimeArr,\n";
+    myfile << "preparationPhase,inputPreparation,computationPhase, verificationPhase, outputPhase, totalTime,\n";
 
     for(int i=0; i<times; i++) {
         myfile << preparationPhaseArr[i] << ","
         << inputPreparationArr[i] << ","
-        << inputAdjustmentArr[i] << ","
         << computationPhaseArr[i] << ","
+        << verificationPhaseArr[i] << ","
         << outputPhaseArr[i] << ","
         << totalTimeArr[i] << ",\n";
 
         cout<< "Times" <<preparationPhaseArr[i] << ","
         << inputPreparationArr[i] << ","
-        << inputAdjustmentArr[i] << ","
         << computationPhaseArr[i] << ","
+        << verificationPhaseArr[i] << ","
         << outputPhaseArr[i] << ","
         << totalTimeArr[i] << ",\n";
     }

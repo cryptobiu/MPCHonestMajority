@@ -218,7 +218,6 @@ public:
     void generateRandom2TAndTShares(int numOfRandomPairs, vector<FieldType>& randomElementsToFill);
 
 
-
     /**
      * Check whether given points lie on polynomial of degree d.
      * This check is performed by interpolating x on the first d + 1 positions of α and check the remaining positions.
@@ -681,7 +680,7 @@ void Protocol<FieldType>::run(int iteration) {
 
     t2 = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(t2-t1).count();
-    //protocolTimer->outputPhaseArr[iteration] = duration;
+    protocolTimer->verificationPhaseArr[iteration] = duration;
 
     if(flag_print_timings) {
         cout << "time in milliseconds verificationPhase: " << duration << endl;

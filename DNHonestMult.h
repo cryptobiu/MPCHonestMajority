@@ -128,7 +128,7 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
         cToFill[k] = randomTAnd2TShares[offset + 2*k] + xyMinusR[k];
     }
 
-    //offset+=numOfTrupples*2;
+    offset+=numOfTrupples*2;
 
 }
 
