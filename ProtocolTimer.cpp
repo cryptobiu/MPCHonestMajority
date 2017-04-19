@@ -38,7 +38,7 @@ ProtocolTimer::ProtocolTimer(int times, string fileName) : fileName(fileName), t
 
     preparationPhaseArr = new int[times];
     inputPreparationArr = new int[times];
-    inputAdjustmentArr= new int[times];
+    verificationPhaseArr = new int[times];
     computationPhaseArr= new int[times];
     outputPhaseArr= new int[times];
     totalTimeArr= new int[times];
