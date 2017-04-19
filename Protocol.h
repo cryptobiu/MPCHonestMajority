@@ -93,7 +93,7 @@ private:
 public:
     Protocol(int n, int id,TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
              ProtocolTimer* protocolTimer,
-             string genRandomSharesType = "HIM", string multType = "GRR", string verifyType = "Batch");
+             string genRandomSharesType = "HIM", string multType = "DN", string verifyType = "Single");
 
 
     void roundFunctionSync(vector<vector<byte>> &sendBufs, vector<vector<byte>> &recBufs, int round);
@@ -1203,7 +1203,7 @@ bool Protocol<FieldType>::preparationPhase()
 {
 
     //generate triples for the DN multiplication protocol
-    //if(multType=="DN")
+    if(multType=="DN")
         offlineDNForMultiplication(circuit.getNrOfMultiplicationGates());
 
     honestMult->invokeOffline();
@@ -1224,8 +1224,8 @@ void Protocol<FieldType>::generateBeaverTriples(int numOfTriples){
     generateRandomShares(numOfTriples*2,randomABShares);
 
     //GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
-    //honestMult->mult(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
-    DNHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
+    honestMult->mult(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
+    //DNHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
 
 }
 
@@ -1985,7 +1985,7 @@ void Protocol<FieldType>::verificationPhase() {
     }
 
     bool answer;
-    if (verifyType == "Single") {
+    if (verifyType == "Batch") {
 
         cout<<"verify single for party "<< m_partyId <<endl;
         //call the verification sub protocol
@@ -1994,7 +1994,7 @@ void Protocol<FieldType>::verificationPhase() {
                                                    c.data(),
                                                    randomElements, numOfMultGates);
     }
-    else if (verifyType == "Batch")
+    else if (verifyType == "Single")
     {
         cout<<"verify batch for party "<< m_partyId <<endl;
         //call the verification sub protocol
@@ -2170,8 +2170,8 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
     }
 
     //run semi-honest multiplication on x and r
-    //GRRHonestMultiplication(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
-    honestMult->mult(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
+    GRRHonestMultiplication(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
+    //honestMult->mult(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
 
     //compute the output share to check
     FieldType vk;

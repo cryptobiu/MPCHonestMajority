@@ -34,8 +34,6 @@ void DNHonestMult<FieldType>::invokeOffline(){
 template <class FieldType>
 void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType> &cToFill, int numOfTrupples)
 {
-
-    int index = 0;
     int fieldByteSize = protocol->field->getElementSizeInBytes();
     vector<FieldType> xyMinusRShares(numOfTrupples);//hold both in the same vector to send in one batch
     vector<byte> xyMinusRSharesBytes(numOfTrupples *fieldByteSize);//hold both in the same vector to send in one batch
@@ -46,12 +44,11 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
     vector<vector<byte>> recBufsBytes;
 
 
-
     //generate the shares for x+a and y+b. do it in the same array to send once
     for (int k = 0; k < numOfTrupples; k++)//go over only the logit gates
     {
         //compute the share of xy-r
-        xyMinusRShares[index] = a[k]*b[k] - randomTAnd2TShares[offset + 2*k+1];
+        xyMinusRShares[k] = a[k]*b[k] - randomTAnd2TShares[offset + 2*k+1];
 
     }
 
@@ -65,8 +62,6 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
     }
 
     if (protocol->m_partyId == 1) {
-
-
 
         //just party 1 needs the recbuf
         recBufsBytes.resize(protocol->N);
@@ -127,16 +122,13 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
         }
     }
 
-
-    index = 0;
-
     //after the xPlusAAndYPlusB array is filled, we are ready to fill the output of the mult gates
     for (int k = 0; k < numOfTrupples; k++)//go over only the logit gates
     {
         cToFill[k] = randomTAnd2TShares[offset + 2*k] + xyMinusR[k];
     }
 
-    offset+=numOfTrupples*2;
+    //offset+=numOfTrupples*2;
 
 }
 
