@@ -28,7 +28,7 @@ public:
 template <class FieldType>
 void DNHonestMult<FieldType>::invokeOffline(){
 
-    protocol->generateRandom2TAndTShares(numOfRandoms*2,randomTAnd2TShares);
+    protocol->generateRandom2TAndTShares(numOfRandoms,randomTAnd2TShares);
 }
 
 template <class FieldType>
@@ -48,7 +48,7 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
     for (int k = 0; k < numOfTrupples; k++)//go over only the logit gates
     {
         //compute the share of xy-r
-        xyMinusRShares[k] = a[k]*b[k] - randomTAnd2TShares[offset + 2*k+1];
+        xyMinusRShares[k] = a[k]*b[k] - protocol->randomTAnd2TShares[offset + 2*k+1];
 
     }
 
@@ -92,6 +92,10 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
 
                 xyMinurAllShares[i] = protocol->field->bytesToElement(recBufsBytes[i].data() + (k * fieldByteSize));
             }
+            /*for (int i = protocol->T*2; i < protocol->N; i++) {
+
+                xyMinurAllShares[i] = *(protocol->field->GetZero());
+            }*/
 
             // reconstruct the shares by P0
             xyMinusR[k] = protocol->interpolate(xyMinurAllShares);
@@ -125,7 +129,7 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
     //after the xPlusAAndYPlusB array is filled, we are ready to fill the output of the mult gates
     for (int k = 0; k < numOfTrupples; k++)//go over only the logit gates
     {
-        cToFill[k] = randomTAnd2TShares[offset + 2*k] + xyMinusR[k];
+        cToFill[k] = protocol->randomTAnd2TShares[offset + 2*k] + xyMinusR[k];
     }
 
     offset+=numOfTrupples*2;

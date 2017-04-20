@@ -38,6 +38,7 @@ public:
     vector<FieldType> firstRowVandInverse;
     TemplateField<FieldType> *field;
     vector<shared_ptr<ProtocolPartyData>>  parties;
+    vector<FieldType> randomTAnd2TShares;
 private:
     /**
      * N - number of parties
@@ -71,7 +72,7 @@ private:
 
     //vector<FieldType> randomTSharesOfflineMult;//a, b random shares
     //vector<FieldType> cOfflineMult;//a vector of a*b shares
-    vector<FieldType> randomTAnd2TShares;
+
 
 
 
@@ -86,7 +87,7 @@ private:
     int shareIndex;
 
 
-    HonestMultAbstract<FieldType> *honestMult;//
+    HonestMultAbstract<FieldType> *honestMult = nullptr;//
 
     vector<int> myInputs;
 
@@ -1202,10 +1203,15 @@ bool Protocol<FieldType>::preparationPhase()
 {
 
     //generate triples for the DN multiplication protocol
-    if(multType=="DN")
-        offlineDNForMultiplication(circuit.getNrOfMultiplicationGates());
+    if(multType=="DN") {
 
-    honestMult->invokeOffline();
+        if(verifyType=="Single")
+            offlineDNForMultiplication(2 * circuit.getNrOfMultiplicationGates());
+        else if(verifyType=="Batch")
+            offlineDNForMultiplication(7 * circuit.getNrOfMultiplicationGates());
+    }
+
+    //honestMult->invokeOffline();
 
     generateBeaverTriples(circuit.getNrOfMultiplicationGates());
 
@@ -1224,7 +1230,7 @@ void Protocol<FieldType>::generateBeaverTriples(int numOfTriples){
 
     //GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
     honestMult->mult(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
-    //DNHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
+    //GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
 
 }
 
@@ -1325,8 +1331,8 @@ FieldType Protocol<FieldType>::reconstructShare(vector<FieldType>& x, int d){
     if (!checkConsistency(x, d))
     {
         // someone cheated!
-        if(flag_print) {
-            cout << "cheating!!!" << '\n';}
+
+            cout << "cheating!!!" << '\n';
         exit(0);
     }
     else
@@ -1381,6 +1387,8 @@ int Protocol<FieldType>::processMultiplications(int lastMultGate)
     else if(multType=="DN")
         return processMultDN(lastMultGate);
 
+
+    //return processMultGRR();
 }
 
 
@@ -1543,7 +1551,7 @@ void Protocol<FieldType>::DNHonestMultiplication(FieldType *a, FieldType *b, vec
     for (int k = 0; k < numOfTrupples; k++)//go over only the logit gates
     {
         //compute the share of xy-r
-        xyMinusRShares[index] = a[k]*b[k] - randomTAnd2TShares[offset + 2*k+1];
+        xyMinusRShares[k] = a[k]*b[k] - randomTAnd2TShares[offset + 2*k+1];
 
     }
 
@@ -1986,7 +1994,7 @@ void Protocol<FieldType>::verificationPhase() {
     bool answer;
     if (verifyType == "Batch") {
 
-        cout<<"verify single for party "<< m_partyId <<endl;
+        cout<<"verify batch for party "<< m_partyId <<endl;
         //call the verification sub protocol
         answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
                                                    randomABShares.data(), randomABShares.data() + numOfMultGates,
@@ -1995,7 +2003,7 @@ void Protocol<FieldType>::verificationPhase() {
     }
     else if (verifyType == "Single")
     {
-        cout<<"verify batch for party "<< m_partyId <<endl;
+        cout<<"verify single for party "<< m_partyId <<endl;
         //call the verification sub protocol
         answer = verificationOfSingleTriples(x.data(), y.data(), z.data(),
                                                   randomABShares.data(), randomABShares.data() + numOfMultGates,
@@ -2169,8 +2177,8 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
     }
 
     //run semi-honest multiplication on x and r
-    GRRHonestMultiplication(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
-    //honestMult->mult(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
+    //GRRHonestMultiplication(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
+    honestMult->mult(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
 
     //compute the output share to check
     FieldType vk;
