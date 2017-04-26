@@ -11,6 +11,7 @@
 #include "TGate.h"
 #include "ArithmeticCircuit.h"
 #include <vector>
+#include <bitset>
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -24,6 +25,8 @@
 #define flag_print false
 #define flag_print_timings true
 #define flag_print_output true
+
+#define MAX_PRSS_PARTIES 32
 
 
 using namespace std;
@@ -108,6 +111,12 @@ public:
     void sendFromP1(vector<byte> &sendBuf);
 
 
+
+    void printSubSet( bitset<MAX_PRSS_PARTIES> &l);
+    void subset(int size, int left, int index, bitset<MAX_PRSS_PARTIES> &l);
+    vector<bitset<MAX_PRSS_PARTIES>> allSubsets;
+    vector<int> firstIndex;
+    int counter = 0;
     /**
      * This method runs the protocol:
      * 1. Initialization Phase
@@ -216,6 +225,8 @@ public:
     void inputPhase();
 
     void generateRandomShares(int numOfRnadoms, vector<FieldType>& randomElementsToFill);
+    void setupPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill);
+    void generateRandomSharesPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill);
     void generateRandom2TAndTShares(int numOfRandomPairs, vector<FieldType>& randomElementsToFill);
 
 
@@ -619,6 +630,22 @@ void Protocol<FieldType>::readMyInputs()
 template <class FieldType>
 void Protocol<FieldType>::run(int iteration) {
 
+
+    //int array[26]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
+    bitset<MAX_PRSS_PARTIES> lt;
+    auto t1 = high_resolution_clock::now();
+    firstIndex.push_back(0);
+    subset(26,14,0,lt);
+    auto t2 = high_resolution_clock::now();
+
+    auto duration = duration_cast<milliseconds>(t2-t1).count();
+
+    cout<<"number of subsets is " << allSubsets.size();
+
+    cout << "time in milliseconds for N=: " <<20 <<"is:" << duration << endl;
+
+
+/*
     shareIndex = numOfInputGates;
 
     auto t1start = high_resolution_clock::now();
@@ -705,7 +732,7 @@ void Protocol<FieldType>::run(int iteration) {
     protocolTimer->totalTimeArr[iteration] = duration;
 
     cout << "time in milliseconds for protocol: " << duration << endl;
-
+*/
 }
 
 template <class FieldType>
@@ -843,6 +870,57 @@ void Protocol<FieldType>::inputPhase()
 }
 
 
+template <class FieldType>
+void Protocol<FieldType>::setupPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill){
+
+    vector<vector<byte>> sendBufsBytes(N);
+    vector<vector<byte>> recBufsBytes(N);
+
+    //generate all subsets that include my party id
+    bitset<MAX_PRSS_PARTIES> lt;
+    subset(N,N-T,0,lt);
+
+
+    //generate random keys for all subsets that
+
+    //get the number of keys to create for all the subsets for which I am the smallest lexicographical index
+
+    int numOfKeys = firstIndex[m_partyId] - firstIndex[m_partyId - 1];
+
+    if(numOfKeys>0){
+        //generate a pseudo random generator to generate the keys
+        PrgFromOpenSSLAES prg(numOfKeys*16);
+        auto randomKey = prg.generateKey(128);
+        prg.setKey(randomKey);
+
+        vector<byte> fromPrg(numOfKeys*16);
+        prg.getPRGBytes(fromPrg, 0, numOfKeys*16);
+
+        for(int i=m_partyId ; i<N; i++){
+
+            for(int j=firstIndex[m_partyId - 1]; j<firstIndex[m_partyId]; j++){
+
+                if(allSubsets[j][i] == true)//need to send the key to party i
+                {
+                    //sendBufsBytes[i]
+                }
+
+            }
+        }
+
+
+    }
+
+
+
+
+}
+
+template <class FieldType>
+void Protocol<FieldType>::generateRandomSharesPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill){
+
+
+}
 
 template <class FieldType>
 void Protocol<FieldType>::generateRandomShares(int numOfRandoms, vector<FieldType>& randomElementsToFill){
@@ -2578,6 +2656,45 @@ void Protocol<FieldType>::sendDataFromP1(vector<byte> &sendBuf, int first, int l
 }
 
 
+
+
+template <class FieldType>
+void Protocol<FieldType>::printSubSet( bitset<MAX_PRSS_PARTIES> &l){
+    for(int i=0; i<MAX_PRSS_PARTIES;i++){
+
+        if(l[i]==true)
+            cout << " " << i+1;
+    }
+
+    cout<<endl;
+}
+
+template <class FieldType>
+void Protocol<FieldType>::subset(int size, int left, int index, bitset<MAX_PRSS_PARTIES> &l){
+
+
+
+    if(left==0){
+        //printSubSet(l);
+        if(l[m_partyId-1]==true) {
+            counter++;
+            allSubsets.push_back(l);
+        }
+        return;
+    }
+    for(int i=index; i<size;i++){
+        l.set(i);
+
+
+
+        subset(size,left-1,i+1,l);
+        l.reset(i);
+        if(index==0)
+            firstIndex.push_back(counter);
+
+    }
+
+}
 
 
 template <class FieldType>
