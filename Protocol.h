@@ -634,7 +634,7 @@ void Protocol<FieldType>::run(int iteration) {
 
 
     //int array[26]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
-    bitset<MAX_PRSS_PARTIES> lt;
+   /* bitset<MAX_PRSS_PARTIES> lt;
     auto t1 = high_resolution_clock::now();
     firstIndex.push_back(0);
     subset(26,14,0,lt);
@@ -645,9 +645,9 @@ void Protocol<FieldType>::run(int iteration) {
     cout<<"number of subsets is " << allSubsets.size();
 
     cout << "time in milliseconds for N=: " <<20 <<"is:" << duration << endl;
+*/
 
 
-/*
     shareIndex = numOfInputGates;
 
     auto t1start = high_resolution_clock::now();
@@ -734,7 +734,7 @@ void Protocol<FieldType>::run(int iteration) {
     protocolTimer->totalTimeArr[iteration] = duration;
 
     cout << "time in milliseconds for protocol: " << duration << endl;
-*/
+
 }
 
 template <class FieldType>
@@ -880,9 +880,11 @@ void Protocol<FieldType>::setupPRSS() {
 
     //generate all subsets that include my party id
     bitset<MAX_PRSS_PARTIES> lt;
+    firstIndex.push_back(0);
     subset(N,N-T,0,lt);
 
     prssKeys.resize(allSubsets.size());
+
 
 
     //generate random keys for all subsets that
@@ -891,16 +893,21 @@ void Protocol<FieldType>::setupPRSS() {
 
     int numOfKeys = firstIndex[m_partyId] - firstIndex[m_partyId - 1];
 
+    for(int i=0; i < N; i++)
+    {
+        recBufsBytes[i].resize((firstIndex[i+1] - firstIndex[i])*16);
+    }
+    for(int i=0 ; i<m_partyId-1; i++){
+        sendBufsBytes[i].resize(0);
+    }
+    for(int i=m_partyId-1 ; i<N; i++){
+        sendBufsBytes[i].resize(numOfKeys*16);
+    }
+
     if(numOfKeys>0){
 
 
-        for(int i=0; i < N; i++)
-        {
-            recBufsBytes[i].resize((firstIndex[i+1] - firstIndex[i])*16);
-        }
-        for(int i=m_partyId ; i<N; i++){
-            sendBufsBytes[i].resize(numOfKeys*16);
-        }
+
 
 
         //generate a pseudo random generator to generate the keys
@@ -915,15 +922,15 @@ void Protocol<FieldType>::setupPRSS() {
 
         int ctr;
         //fill the send array for each party with the relevant keys
-        for(int i=m_partyId ; i<N; i++){
+        for(int i=m_partyId-1 ; i<N; i++){
 
             ctr = 0;
 
-            for(int j=firstIndex[m_partyId - 1]; j<firstIndex[m_partyId]; j++){
+            for(int j=firstIndex[m_partyId - 1] ; j<firstIndex[m_partyId]; j++){
 
                 if(allSubsets[j][i] == true)//need to send the key to party i
                 {
-                    memcpy(sendBufsBytes[i].data() + ctr*16, (byte *)&(keys[j]), 16);
+                    memcpy(sendBufsBytes[i].data() + ctr*16, (byte *)&(keys[j-firstIndex[m_partyId - 1]]), 16);
                     ctr++;
                 }
 
@@ -933,24 +940,57 @@ void Protocol<FieldType>::setupPRSS() {
         }
 
     }
+    /*if(m_partyId==4){
+
+        cout << "before :: the recbuf for party " <<m_partyId << " from party 2 is " << _mm_extract_epi64(( (__m128i *)recBufsBytes[1].data() )[0], 0)<<endl;
+
+        cout<<"before: recbuf size is " << recBufsBytes[1].size()<<endl;
+    }*/
 
 
     roundFunctionSync(sendBufsBytes, recBufsBytes,20);
 
+   /* if(m_partyId==2){
+        cout <<"PARTY 2:: the size of sendbuf[0] is " << sendBufsBytes[0].size()<<endl;
+        cout <<"the size of sendbuf[1] is " << sendBufsBytes[1].size()<<endl;
+        cout <<"the size of sendbuf[2] is " << sendBufsBytes[2].size()<<endl;
+        cout <<"the size of sendbuf[3] is " << sendBufsBytes[3].size()<<endl;
+
+        cout <<"PARTY 2:: the size of sendbuf[0] is " << firstIndex[0]<<endl;
+        cout <<"the size of firstIndex[1] is " << firstIndex[1]<<endl;
+        cout <<"the size of firstIndex[2] is " << firstIndex[2]<<endl;
+        cout <<"the size of firstIndex[3] is " << firstIndex[3]<<endl;
+        cout <<"the size of firstIndex[4] is " << firstIndex[4]<<endl;
+
+    }
+
+    if(m_partyId==4){
+
+        cout << "after :: the recbuf for party " <<m_partyId << " from party 2 is " << _mm_extract_epi64(( (__m128i *)recBufsBytes[1].data() )[0], 0)<<endl;
+
+        cout<<"after: recbuf size is " << recBufsBytes[1].size()<<endl;
+    }
+*/
     //get the keys from the other parties
 
     int ctr = 0;
 
     for(int i=0; i<m_partyId;i++){
 
-        for(int j=firstIndex[i - 1]; j<firstIndex[i]; j++){
+        for(int j=0; j<recBufsBytes[i].size()/16; j++){
 
             prssKeys[ctr] = ( (__m128i *)recBufsBytes[i].data() )[j];
+            ctr++;
         }
 
     }
 
 
+   /* for(int i=0; i<prssKeys.size();i++) {
+        cout << "the keys for party " << m_partyId << "is " << _mm_extract_epi64(prssKeys[i],0) << ", " <<
+                _mm_extract_epi64(prssKeys[i],1) << endl;
+    }
+*/
 }
 
 template <class FieldType>
