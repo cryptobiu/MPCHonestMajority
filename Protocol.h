@@ -20,6 +20,7 @@
 #include "MPCCommunication.h"
 #include "../../include/infra/Common.hpp"
 #include "../../include/primitives/Prg.hpp"
+#include<emmintrin.h>
 #include <thread>
 
 #define flag_print false
@@ -116,6 +117,7 @@ public:
     void subset(int size, int left, int index, bitset<MAX_PRSS_PARTIES> &l);
     vector<bitset<MAX_PRSS_PARTIES>> allSubsets;
     vector<int> firstIndex;
+    vector<__m128i> prssKeys;
     int counter = 0;
     /**
      * This method runs the protocol:
@@ -225,7 +227,7 @@ public:
     void inputPhase();
 
     void generateRandomShares(int numOfRnadoms, vector<FieldType>& randomElementsToFill);
-    void setupPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill);
+    void setupPRSS();
     void generateRandomSharesPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill);
     void generateRandom2TAndTShares(int numOfRandomPairs, vector<FieldType>& randomElementsToFill);
 
@@ -871,7 +873,7 @@ void Protocol<FieldType>::inputPhase()
 
 
 template <class FieldType>
-void Protocol<FieldType>::setupPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill){
+void Protocol<FieldType>::setupPRSS() {
 
     vector<vector<byte>> sendBufsBytes(N);
     vector<vector<byte>> recBufsBytes(N);
@@ -879,6 +881,8 @@ void Protocol<FieldType>::setupPRSS(int numOfRnadoms, vector<FieldType>& randomE
     //generate all subsets that include my party id
     bitset<MAX_PRSS_PARTIES> lt;
     subset(N,N-T,0,lt);
+
+    prssKeys.resize(allSubsets.size());
 
 
     //generate random keys for all subsets that
@@ -888,6 +892,17 @@ void Protocol<FieldType>::setupPRSS(int numOfRnadoms, vector<FieldType>& randomE
     int numOfKeys = firstIndex[m_partyId] - firstIndex[m_partyId - 1];
 
     if(numOfKeys>0){
+
+
+        for(int i=0; i < N; i++)
+        {
+            recBufsBytes[i].resize((firstIndex[i+1] - firstIndex[i])*16);
+        }
+        for(int i=m_partyId ; i<N; i++){
+            sendBufsBytes[i].resize(numOfKeys*16);
+        }
+
+
         //generate a pseudo random generator to generate the keys
         PrgFromOpenSSLAES prg(numOfKeys*16);
         auto randomKey = prg.generateKey(128);
@@ -896,22 +911,44 @@ void Protocol<FieldType>::setupPRSS(int numOfRnadoms, vector<FieldType>& randomE
         vector<byte> fromPrg(numOfKeys*16);
         prg.getPRGBytes(fromPrg, 0, numOfKeys*16);
 
+        __m128i *keys = (__m128i *)fromPrg.data();
+
+        int ctr;
+        //fill the send array for each party with the relevant keys
         for(int i=m_partyId ; i<N; i++){
+
+            ctr = 0;
 
             for(int j=firstIndex[m_partyId - 1]; j<firstIndex[m_partyId]; j++){
 
                 if(allSubsets[j][i] == true)//need to send the key to party i
                 {
-                    //sendBufsBytes[i]
+                    memcpy(sendBufsBytes[i].data() + ctr*16, (byte *)&(keys[j]), 16);
+                    ctr++;
                 }
 
             }
+            //resize to only the number of keys needed
+            sendBufsBytes[i].resize(ctr*16);
         }
-
 
     }
 
 
+    roundFunctionSync(sendBufsBytes, recBufsBytes,20);
+
+    //get the keys from the other parties
+
+    int ctr = 0;
+
+    for(int i=0; i<m_partyId;i++){
+
+        for(int j=firstIndex[i - 1]; j<firstIndex[i]; j++){
+
+            prssKeys[ctr] = ( (__m128i *)recBufsBytes[i].data() )[j];
+        }
+
+    }
 
 
 }
@@ -1247,6 +1284,9 @@ void Protocol<FieldType>::initializationPhase()
         matrix_for_2t.Print();
 
     }
+
+    setupPRSS();
+    ;
 
 
 }
