@@ -878,7 +878,7 @@ void Protocol<FieldType>::inputPhase()
 template <class FieldType>
 void Protocol<FieldType>::setupPRSS() {
 
-
+cout<<"in PRSS setup" <<endl;
     //generate all subsets that include my party id
     bitset<MAX_PRSS_PARTIES> lt;
     firstIndex.push_back(0);
@@ -1049,7 +1049,7 @@ void Protocol<FieldType>::generateKeysForPRSS() {
 template <class FieldType>
 void Protocol<FieldType>::generateRandomSharesPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill){
 
-
+cout<<"in PRSS gen" <<endl;
 
     for(int i=0; i<numOfRnadoms; i++){
 
@@ -1390,8 +1390,9 @@ void Protocol<FieldType>::initializationPhase()
 
     }
 
-    setupPRSS();
-    ;
+    if(genRandomSharesType=="PRSS")
+        setupPRSS();
+
 
 
 }
@@ -1449,8 +1450,10 @@ void Protocol<FieldType>::generateBeaverTriples(int numOfTriples){
     c.resize(numOfTriples);//a vector of a*b shares
 
     //first generate 2*numOfTriples random shares
-    //generateRandomShares(numOfTriples*2,randomABShares);
-    generateRandomSharesPRSS(numOfTriples*2,randomABShares);
+    if(genRandomSharesType=="HIM")
+        generateRandomShares(numOfTriples*2,randomABShares);
+    else if(genRandomSharesType=="PRSS")
+        generateRandomSharesPRSS(numOfTriples*2,randomABShares);
 
     //GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
     honestMult->mult(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
@@ -2258,8 +2261,10 @@ void Protocol<FieldType>::verificationPhase() {
 
 
       //generate enough random shares for the AES key
-      //generateRandomShares(numOfRandomShares, randomSharesArray);
-      generateRandomSharesPRSS(numOfRandomShares, randomSharesArray);
+      if(genRandomSharesType=="HIM")
+        generateRandomShares(numOfRandomShares, randomSharesArray);
+      else if(genRandomSharesType=="PRSS")
+        generateRandomSharesPRSS(numOfRandomShares, randomSharesArray);
 
       openShare(numOfRandomShares, randomSharesArray, aesArray);
 
@@ -2377,8 +2382,10 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
     vector<FieldType> v(numOfTriples);//vector holding the 4*numOfTriples output of the multiplication
 
     //first generate numOfTriples random shares
-    //generateRandomShares(numOfTriples, r);
-    generateRandomSharesPRSS(numOfTriples, r);
+    if(genRandomSharesType=="HIM")
+        generateRandomShares(numOfTriples, r);
+    else if(genRandomSharesType=="PRSS")
+        generateRandomSharesPRSS(numOfTriples, r);
 
     //run semi-honest multiplication on x and r
     //GRRHonestMultiplication(x, r.data(),rx, numOfTriples);
