@@ -118,6 +118,8 @@ public:
     vector<bitset<MAX_PRSS_PARTIES>> allSubsets;
     vector<int> firstIndex;
     vector<__m128i> prssKeys;
+    vector<PrgFromOpenSSLAES> prssPrgs;
+    vector<FieldType> prssSubsetElement;
     int counter = 0;
     /**
      * This method runs the protocol:
@@ -320,6 +322,7 @@ public:
     ~Protocol();
 
 
+    void generateKeysForPRSS();
 };
 
 
@@ -875,15 +878,51 @@ void Protocol<FieldType>::inputPhase()
 template <class FieldType>
 void Protocol<FieldType>::setupPRSS() {
 
-    vector<vector<byte>> sendBufsBytes(N);
-    vector<vector<byte>> recBufsBytes(N);
 
     //generate all subsets that include my party id
     bitset<MAX_PRSS_PARTIES> lt;
     firstIndex.push_back(0);
     subset(N,N-T,0,lt);
 
+    //generate the relevant keys for each subset
+    generateKeysForPRSS();
+
+
+    //generate the relevant number for each subset
+    prssSubsetElement.resize(allSubsets.size());
+    for(int i=0; i<allSubsets.size(); i++){
+
+
+        auto currSubset = allSubsets[i];
+        prssSubsetElement[i] = *field->GetOne();
+        for(int j=0; j<N; j++){
+
+
+            if(currSubset[j]==false){
+
+                //calc the relevant multiplication for this subset.
+                //the element calculated is: For each party P_a in currSubset calc *=(a-k)/-z where k is not in currSubset
+                prssSubsetElement[i] *= (field->GetElement(m_partyId ) - field->GetElement(j+1) ) /
+                        (*field->GetZero() - field->GetElement(j+1));
+            }
+
+
+        }
+        //cout<< " prssSubsetElement" <<"["<<i<<"] = " << prssSubsetElement[i]<< " for party " <<m_partyId<< endl;
+    }
+
+
+
+}
+template <class FieldType>
+void Protocol<FieldType>::generateKeysForPRSS() {
+
+    vector<vector<byte>> sendBufsBytes(N);
+    vector<vector<byte>> recBufsBytes(N);
+
     prssKeys.resize(allSubsets.size());
+
+    //cout << "number of keys is " << allSubsets.size() << "for party " << m_partyId << endl;
 
 
 
@@ -893,20 +932,20 @@ void Protocol<FieldType>::setupPRSS() {
 
     int numOfKeys = firstIndex[m_partyId] - firstIndex[m_partyId - 1];
 
+    //cout << "num of keys that I am first is " << numOfKeys << "for party " << m_partyId << endl;
+
     for(int i=0; i < N; i++)
     {
-        recBufsBytes[i].resize((firstIndex[i+1] - firstIndex[i])*16);
+        recBufsBytes[i].resize((firstIndex[i + 1] - firstIndex[i]) * 16);
     }
-    for(int i=0 ; i<m_partyId-1; i++){
+    for(int i=0 ; i < m_partyId - 1; i++){
         sendBufsBytes[i].resize(0);
     }
-    for(int i=m_partyId-1 ; i<N; i++){
+    for(int i= m_partyId - 1 ; i < N; i++){
         sendBufsBytes[i].resize(numOfKeys*16);
     }
 
     if(numOfKeys>0){
-
-
 
 
 
@@ -922,15 +961,15 @@ void Protocol<FieldType>::setupPRSS() {
 
         int ctr;
         //fill the send array for each party with the relevant keys
-        for(int i=m_partyId-1 ; i<N; i++){
+        for(int i= m_partyId - 1 ; i < N; i++){
 
             ctr = 0;
 
-            for(int j=firstIndex[m_partyId - 1] ; j<firstIndex[m_partyId]; j++){
+            for(int j= firstIndex[m_partyId - 1] ; j < firstIndex[m_partyId]; j++){
 
                 if(allSubsets[j][i] == true)//need to send the key to party i
                 {
-                    memcpy(sendBufsBytes[i].data() + ctr*16, (byte *)&(keys[j-firstIndex[m_partyId - 1]]), 16);
+                    memcpy(sendBufsBytes[i].data() + ctr*16, (byte *)&(keys[j - firstIndex[m_partyId - 1]]), 16);
                     ctr++;
                 }
 
@@ -948,34 +987,34 @@ void Protocol<FieldType>::setupPRSS() {
     }*/
 
 
-    roundFunctionSync(sendBufsBytes, recBufsBytes,20);
+    roundFunctionSync(sendBufsBytes, recBufsBytes, 20);
 
-   /* if(m_partyId==2){
-        cout <<"PARTY 2:: the size of sendbuf[0] is " << sendBufsBytes[0].size()<<endl;
-        cout <<"the size of sendbuf[1] is " << sendBufsBytes[1].size()<<endl;
-        cout <<"the size of sendbuf[2] is " << sendBufsBytes[2].size()<<endl;
-        cout <<"the size of sendbuf[3] is " << sendBufsBytes[3].size()<<endl;
+    /* if(m_partyId==2){
+         cout <<"PARTY 2:: the size of sendbuf[0] is " << sendBufsBytes[0].size()<<endl;
+         cout <<"the size of sendbuf[1] is " << sendBufsBytes[1].size()<<endl;
+         cout <<"the size of sendbuf[2] is " << sendBufsBytes[2].size()<<endl;
+         cout <<"the size of sendbuf[3] is " << sendBufsBytes[3].size()<<endl;
 
-        cout <<"PARTY 2:: the size of sendbuf[0] is " << firstIndex[0]<<endl;
-        cout <<"the size of firstIndex[1] is " << firstIndex[1]<<endl;
-        cout <<"the size of firstIndex[2] is " << firstIndex[2]<<endl;
-        cout <<"the size of firstIndex[3] is " << firstIndex[3]<<endl;
-        cout <<"the size of firstIndex[4] is " << firstIndex[4]<<endl;
+         cout <<"PARTY 2:: the size of sendbuf[0] is " << firstIndex[0]<<endl;
+         cout <<"the size of firstIndex[1] is " << firstIndex[1]<<endl;
+         cout <<"the size of firstIndex[2] is " << firstIndex[2]<<endl;
+         cout <<"the size of firstIndex[3] is " << firstIndex[3]<<endl;
+         cout <<"the size of firstIndex[4] is " << firstIndex[4]<<endl;
 
-    }
+     }
 
-    if(m_partyId==4){
+     if(m_partyId==4){
 
-        cout << "after :: the recbuf for party " <<m_partyId << " from party 2 is " << _mm_extract_epi64(( (__m128i *)recBufsBytes[1].data() )[0], 0)<<endl;
+         cout << "after :: the recbuf for party " <<m_partyId << " from party 2 is " << _mm_extract_epi64(( (__m128i *)recBufsBytes[1].data() )[0], 0)<<endl;
 
-        cout<<"after: recbuf size is " << recBufsBytes[1].size()<<endl;
-    }
-*/
+         cout<<"after: recbuf size is " << recBufsBytes[1].size()<<endl;
+     }
+ */
     //get the keys from the other parties
 
     int ctr = 0;
 
-    for(int i=0; i<m_partyId;i++){
+    for(int i=0; i < m_partyId; i++){
 
         for(int j=0; j<recBufsBytes[i].size()/16; j++){
 
@@ -986,17 +1025,43 @@ void Protocol<FieldType>::setupPRSS() {
     }
 
 
-   /* for(int i=0; i<prssKeys.size();i++) {
-        cout << "the keys for party " << m_partyId << "is " << _mm_extract_epi64(prssKeys[i],0) << ", " <<
-                _mm_extract_epi64(prssKeys[i],1) << endl;
+    prssPrgs.resize(allSubsets.size());
+
+    for(int i=0; i<prssPrgs.size(); i++){
+
+        byte * buf = (byte *)(&prssKeys[i]);
+        vector<byte> vec;
+        //copy the random bytes to a vector held in the secret key
+        copy_byte_array_to_byte_vector(buf, 16, vec, 0);
+        SecretKey sk(vec, "");
+
+
+        prssPrgs[i].setKey(sk);
     }
-*/
-}
+
+
+    /* for(int i=0; i<prssKeys.size();i++) {
+         cout << "the keys for party " << m_partyId << "is " << _mm_extract_epi64(prssKeys[i],0) << ", " <<
+                 _mm_extract_epi64(prssKeys[i],1) << endl;
+     }
+ */}
 
 template <class FieldType>
 void Protocol<FieldType>::generateRandomSharesPRSS(int numOfRnadoms, vector<FieldType>& randomElementsToFill){
 
 
+
+    for(int i=0; i<numOfRnadoms; i++){
+
+        randomElementsToFill[i] = *field->GetZero();
+
+        for(int j=0; j<prssPrgs.size();j++){
+
+            //NOTE: check if getRandom32 is enough
+            randomElementsToFill[i] +=field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
+        }
+
+    }
 }
 
 template <class FieldType>
@@ -1384,7 +1449,8 @@ void Protocol<FieldType>::generateBeaverTriples(int numOfTriples){
     c.resize(numOfTriples);//a vector of a*b shares
 
     //first generate 2*numOfTriples random shares
-    generateRandomShares(numOfTriples*2,randomABShares);
+    //generateRandomShares(numOfTriples*2,randomABShares);
+    generateRandomSharesPRSS(numOfTriples*2,randomABShares);
 
     //GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
     honestMult->mult(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
@@ -2117,12 +2183,12 @@ void Protocol<FieldType>::verificationPhase() {
 
     //print key
     //if(flag_print) {
-    for (int i = 0; i < 3; i++) {
+   /* for (int i = 0; i < 3; i++) {
         cout << "randomElements[" << i << "] for party :" << m_partyId << "is : " <<
         field->elementToString(randomElements[i]) << endl;
     }
     //}
-
+*/
     //preapre x,y,z for the verification sub protocol
 
 
@@ -2192,7 +2258,8 @@ void Protocol<FieldType>::verificationPhase() {
 
 
       //generate enough random shares for the AES key
-      generateRandomShares(numOfRandomShares, randomSharesArray);
+      //generateRandomShares(numOfRandomShares, randomSharesArray);
+      generateRandomSharesPRSS(numOfRandomShares, randomSharesArray);
 
       openShare(numOfRandomShares, randomSharesArray, aesArray);
 
@@ -2310,7 +2377,8 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
     vector<FieldType> v(numOfTriples);//vector holding the 4*numOfTriples output of the multiplication
 
     //first generate numOfTriples random shares
-    generateRandomShares(numOfTriples, r);
+    //generateRandomShares(numOfTriples, r);
+    generateRandomSharesPRSS(numOfTriples, r);
 
     //run semi-honest multiplication on x and r
     //GRRHonestMultiplication(x, r.data(),rx, numOfTriples);
