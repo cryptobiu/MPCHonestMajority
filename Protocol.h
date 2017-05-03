@@ -227,6 +227,7 @@ public:
      * Then, all the shares are sent to the relevant party
      */
     void inputPhase();
+    void inputVerification();
 
     void generateRandomShares(int numOfRnadoms, vector<FieldType>& randomElementsToFill);
     void setupPRSS();
@@ -307,11 +308,11 @@ public:
 
     bool verificationOfBatchedTriples(FieldType *x, FieldType *y, FieldType *z,
                                       FieldType *a, FieldType *b, FieldType *c,
-                                      vector<FieldType> randomElements, int numOfTriples);
+                                      FieldType *randomElements, int numOfTriples);
 
     bool verificationOfSingleTriples(FieldType *x, FieldType *y, FieldType *z,
                                       FieldType *a, FieldType *b, FieldType *c,
-                                      vector<FieldType> randomElements, int numOfTriples);
+                                     FieldType *randomElements, int numOfTriples);
 
 
     /**
@@ -680,6 +681,7 @@ void Protocol<FieldType>::run(int iteration) {
     t1 = high_resolution_clock::now();
 
     inputPhase();
+    inputVerification();
 
     t2 = high_resolution_clock::now();
 
@@ -876,6 +878,62 @@ void Protocol<FieldType>::inputPhase()
 
 
 template <class FieldType>
+void Protocol<FieldType>::inputVerification(){
+
+
+    int numOfInputGates = circuit.getNrOfInputGates();
+    vector<FieldType> inputShares(circuit.getNrOfInputGates());
+
+    //get the shares from the input gates
+    for (int k = 0; k < numOfInputGates; k++) {
+
+        auto gate = circuit.getGates()[k];
+
+        if (gate.gateType == INPUT) {
+            inputShares[k] = gateShareArr[gate.output];
+
+        }
+    }
+
+;
+    //first generate the common aes key
+    auto key = generateCommonKey();
+
+    //print key
+    if (flag_print) {
+        for (int i = 0; i < key.size(); i++) {
+            cout << "key[" << i << "] for party :" << m_partyId << "is : " << (int) key[i] << endl;
+        }
+    }
+    vector<FieldType> randomElements(numOfInputGates);
+    generatePseudoRandomElements(key, randomElements, numOfInputGates);
+
+
+    vector<FieldType> r(1);//vector holding the random shares generated
+    vector<FieldType> v(1);
+    vector<FieldType> secret(1);
+
+    if(genRandomSharesType=="HIM")
+        generateRandomShares(1, r);
+    else if(genRandomSharesType=="PRSS")
+        generateRandomSharesPRSS(1, r);
+
+
+    for(int i=0; i<numOfInputGates; i++)
+        v[0] += randomElements[i]*inputShares[i];
+
+    v[0] += r[0];
+
+
+    //if all the the parties share lie on the same polynomial this will not abort
+    openShare(1,v,secret);
+
+
+
+}
+
+
+template <class FieldType>
 void Protocol<FieldType>::setupPRSS() {
 
 cout<<"in PRSS setup" <<endl;
@@ -1058,7 +1116,8 @@ cout<<"in PRSS gen" <<endl;
         for(int j=0; j<prssPrgs.size();j++){
 
             //NOTE: check if getRandom32 is enough
-            randomElementsToFill[i] +=field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
+            //randomElementsToFill[i] +=field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
+            randomElementsToFill[i] = randomElementsToFill[i] + field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
         }
 
     }
@@ -1431,8 +1490,12 @@ bool Protocol<FieldType>::preparationPhase()
 
         if(verifyType=="Single")
             offlineDNForMultiplication(2 * circuit.getNrOfMultiplicationGates());
-        else if(verifyType=="Batch")
-            offlineDNForMultiplication(7 * circuit.getNrOfMultiplicationGates());
+        else if(verifyType=="Batch") {
+
+            int iterations =   (5 + field->getElementSizeInBytes() - 1) / field->getElementSizeInBytes();
+            offlineDNForMultiplication(
+                    2 * circuit.getNrOfMultiplicationGates() + 5 * iterations* circuit.getNrOfMultiplicationGates());
+        }
     }
 
     //honestMult->invokeOffline();
@@ -1449,16 +1512,34 @@ void Protocol<FieldType>::generateBeaverTriples(int numOfTriples){
     randomABShares.resize(numOfTriples*2);//a, b random shares
     c.resize(numOfTriples);//a vector of a*b shares
 
+
+    auto t1 = high_resolution_clock::now();
+
     //first generate 2*numOfTriples random shares
     if(genRandomSharesType=="HIM")
         generateRandomShares(numOfTriples*2,randomABShares);
     else if(genRandomSharesType=="PRSS")
         generateRandomSharesPRSS(numOfTriples*2,randomABShares);
 
+
+    auto t2 = high_resolution_clock::now();
+
+    auto duration = duration_cast<milliseconds>(t2-t1).count();
+    if(flag_print_timings) {
+        cout << "time in milliseconds generateRandomShares: " << duration << endl;
+    }
+
+    t1 = high_resolution_clock::now();
     //GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
     honestMult->mult(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
     //GRRHonestMultiplication(randomABShares.data(), randomABShares.data()+numOfTriples, c, numOfTriples);
 
+    t2 = high_resolution_clock::now();
+
+    duration = duration_cast<milliseconds>(t2-t1).count();
+    if(flag_print_timings) {
+        cout << "time in milliseconds honestMult: " << duration << endl;
+    }
 }
 
 
@@ -2091,7 +2172,7 @@ void Protocol<FieldType>::offlineDNForMultiplication(int numOfTriples){
 
     //first generate 2*numOfTriples random shares
     //generateRandomShares(numOfTriples*2,randomTSharesOfflineMult);
-    generateRandom2TAndTShares(numOfTriples*2,randomTAnd2TShares);
+    generateRandom2TAndTShares(numOfTriples,randomTAnd2TShares);
 
     //compute locally [ak][bk]-[rk]2t
    /* for(int i=0; i<numOfTriples; i++){
@@ -2181,8 +2262,12 @@ void Protocol<FieldType>::verificationPhase() {
             cout << "key[" << i << "] for party :" << m_partyId << "is : " << (int) key[i] << endl;
         }
     }
-    vector<FieldType> randomElements(numOfRandomelements);
-    generatePseudoRandomElements(key, randomElements, numOfRandomelements);
+
+    //calc the number of times we need to run the verification -- ceiling
+    int iterations =   (5 + field->getElementSizeInBytes() - 1) / field->getElementSizeInBytes();
+
+    vector<FieldType> randomElements(numOfRandomelements*iterations);
+    generatePseudoRandomElements(key, randomElements, numOfRandomelements*iterations);
 
     //print key
     //if(flag_print) {
@@ -2221,22 +2306,31 @@ void Protocol<FieldType>::verificationPhase() {
     bool answer;
     if (verifyType == "Batch") {
 
-        cout<<"verify batch for party "<< m_partyId <<endl;
-        //call the verification sub protocol
-        answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
-                                                   randomABShares.data(), randomABShares.data() + numOfMultGates,
-                                                   c.data(),
-                                                   randomElements, numOfMultGates);
+        for(int i=0; i<iterations; i++) {
+
+            cout << "verify batch for party " << m_partyId << endl;
+            //call the verification sub protocol
+            answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
+                                                  randomABShares.data(), randomABShares.data() + numOfMultGates,
+                                                  c.data(),
+                                                  randomElements.data() + numOfRandomelements*i, numOfMultGates);
+
+            cout<<"answer is : "<< answer<<" for iteration : "<<i <<endl;
+        }
     }
     else if (verifyType == "Single")
     {
         cout<<"verify single for party "<< m_partyId <<endl;
         //call the verification sub protocol
-        answer = verificationOfSingleTriples(x.data(), y.data(), z.data(),
-                                                  randomABShares.data(), randomABShares.data() + numOfMultGates,
-                                                  c.data(),
-                                                  randomElements, numOfMultGates);
+        for(int i=0; i<iterations; i++) {
+            answer = verificationOfSingleTriples(x.data(), y.data(), z.data(),
+                                                 randomABShares.data(), randomABShares.data() + numOfMultGates,
+                                                 c.data(),
+                                                 randomElements.data() +  numOfRandomelements * i ,
+                                                 numOfMultGates);
 
+            cout<<"answer is : "<< answer<<" for iteration : "<<i <<endl;
+        }
     }
 
 
@@ -2353,7 +2447,7 @@ void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, ve
     cout<<"size is" << size << "for party : " << m_partyId;
 
 
-    PrgFromOpenSSLAES prg((numOfRandomElements*size/*field->getElementSizeInBytes()*/) + 1);
+    PrgFromOpenSSLAES prg((numOfRandomElements*size/16) + 1);
     SecretKey sk(aesKey, "aes");
     prg.setKey(sk);
 
@@ -2370,7 +2464,7 @@ void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, ve
 template <class FieldType>
 bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *y, FieldType *z,
                                   FieldType *a, FieldType *b, FieldType *c,
-                                  vector<FieldType> randomElements, int numOfTriples){
+                                  FieldType * randomElements, int numOfTriples){
 
 
 
@@ -2443,7 +2537,7 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
 template <class FieldType>
 bool Protocol<FieldType>::verificationOfSingleTriples(FieldType *x, FieldType *y, FieldType *z,
                                                        FieldType *a, FieldType *b, FieldType *c,
-                                                       vector<FieldType> randomElements, int numOfTriples){
+                                                       FieldType * randomElements, int numOfTriples){
 
 
 
