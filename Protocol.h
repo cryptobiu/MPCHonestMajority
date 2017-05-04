@@ -905,28 +905,34 @@ void Protocol<FieldType>::inputVerification(){
             cout << "key[" << i << "] for party :" << m_partyId << "is : " << (int) key[i] << endl;
         }
     }
-    vector<FieldType> randomElements(numOfInputGates);
+
+    //calc the number of times we need to run the verification -- ceiling
+    int iterations =   (5 + field->getElementSizeInBytes() - 1) / field->getElementSizeInBytes();
+
+    vector<FieldType> randomElements(numOfInputGates*iterations);
     generatePseudoRandomElements(key, randomElements, numOfInputGates);
 
 
-    vector<FieldType> r(1);//vector holding the random shares generated
-    vector<FieldType> v(1);
-    vector<FieldType> secret(1);
+    for(int j=0; j<iterations;j++) {
+        vector<FieldType> r(1);//vector holding the random shares generated
+        vector<FieldType> v(1);
+        vector<FieldType> secret(1);
 
-    if(genRandomSharesType=="HIM")
-        generateRandomShares(1, r);
-    else if(genRandomSharesType=="PRSS")
-        generateRandomSharesPRSS(1, r);
-
-
-    for(int i=0; i<numOfInputGates; i++)
-        v[0] += randomElements[i]*inputShares[i];
-
-    v[0] += r[0];
+        if (genRandomSharesType == "HIM")
+            generateRandomShares(1, r);
+        else if (genRandomSharesType == "PRSS")
+            generateRandomSharesPRSS(1, r);
 
 
-    //if all the the parties share lie on the same polynomial this will not abort
-    openShare(1,v,secret);
+        for (int i = 0; i < numOfInputGates; i++)
+            v[0] += randomElements[i+j*numOfInputGates] * inputShares[i];
+
+        v[0] += r[0];
+
+
+        //if all the the parties share lie on the same polynomial this will not abort
+        openShare(1, v, secret);
+    }
 
 
 
