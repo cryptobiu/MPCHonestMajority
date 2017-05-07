@@ -366,6 +366,33 @@ ZpMersenneIntElement.cpp.s:
 	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpMersenneIntElement.cpp.s
 .PHONY : ZpMersenneIntElement.cpp.s
 
+ZpMersenneLongElement.o: ZpMersenneLongElement.cpp.o
+
+.PHONY : ZpMersenneLongElement.o
+
+# target to build an object file
+ZpMersenneLongElement.cpp.o:
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpMersenneLongElement.cpp.o
+.PHONY : ZpMersenneLongElement.cpp.o
+
+ZpMersenneLongElement.i: ZpMersenneLongElement.cpp.i
+
+.PHONY : ZpMersenneLongElement.i
+
+# target to preprocess a source file
+ZpMersenneLongElement.cpp.i:
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpMersenneLongElement.cpp.i
+.PHONY : ZpMersenneLongElement.cpp.i
+
+ZpMersenneLongElement.s: ZpMersenneLongElement.cpp.s
+
+.PHONY : ZpMersenneLongElement.s
+
+# target to generate assembly for a file
+ZpMersenneLongElement.cpp.s:
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpMersenneLongElement.cpp.s
+.PHONY : ZpMersenneLongElement.cpp.s
+
 main.o: main.cpp.o
 
 .PHONY : main.o
@@ -429,6 +456,9 @@ help:
 	@echo "... ZpMersenneIntElement.o"
 	@echo "... ZpMersenneIntElement.i"
 	@echo "... ZpMersenneIntElement.s"
+	@echo "... ZpMersenneLongElement.o"
+	@echo "... ZpMersenneLongElement.i"
+	@echo "... ZpMersenneLongElement.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

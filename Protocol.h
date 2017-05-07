@@ -354,12 +354,15 @@ Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, st
     //comm = Communication::getInstance(n, id, address);
     N = n;
     T = n/2 - 1;
+    //T = n/3 - 1;
     this->inputsFile = inputsFile;
     this->outputFile = outputFile;
     if(n%2 > 0)
     {
         T++;
     }
+
+
     m_partyId = id;
     s = to_string(m_partyId);
     circuit.readCircuit(circuitFile.c_str());
