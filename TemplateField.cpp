@@ -3,6 +3,7 @@
 //
 
 #include "TemplateField.h"
+#include "ZpKaratsubaElement.h"
 
 
 using namespace NTL;
@@ -28,6 +29,17 @@ TemplateField<ZpMersenneIntElement>::TemplateField(long fieldParam) {
 
     m_ZERO = new ZpMersenneIntElement(0);
     m_ONE = new ZpMersenneIntElement(1);
+}
+
+
+template <>
+TemplateField<ZpKaratsubaElement>::TemplateField(long fieldParam) {
+
+    this->elementSizeInBytes = 5;//round up to the next byte
+
+
+    m_ZERO = new ZpKaratsubaElement(0);
+    m_ONE = new ZpKaratsubaElement(1);
 }
 
 
@@ -75,6 +87,27 @@ ZpMersenneIntElement TemplateField<ZpMersenneIntElement>::GetElement(long b) {
         return element;
     }
 }
+
+
+template <>
+ZpKaratsubaElement TemplateField<ZpKaratsubaElement>::GetElement(long b) {
+
+
+    if(b == 1)
+    {
+        return *m_ONE;
+    }
+    if(b == 0)
+    {
+        return *m_ZERO;
+    }
+    else{
+        ZpKaratsubaElement element(b);
+        return element;
+    }
+}
+
+
 
 
 template <>
@@ -129,11 +162,29 @@ void TemplateField<ZpMersenneIntElement>::elementToBytes(unsigned char* elemenet
 
 
 template <>
+void TemplateField<ZpKaratsubaElement>::elementToBytes(unsigned char* elemenetInBytes, ZpKaratsubaElement& element){
+
+    memcpy(elemenetInBytes, (byte*)(&element.elem), 5);
+}
+
+template <>
 ZpMersenneIntElement TemplateField<ZpMersenneIntElement>::bytesToElement(unsigned char* elemenetInBytes){
 
     return ZpMersenneIntElement((unsigned int)(*(unsigned int *)elemenetInBytes));
 }
 
+
+
+template <>
+ZpKaratsubaElement TemplateField<ZpKaratsubaElement>::bytesToElement(unsigned char* elemenetInBytes){
+
+    long elemVal = 0;
+
+    //copy the 5 bytes to a long element
+    memcpy((byte*)&elemVal, elemenetInBytes, 5);
+
+    return ZpKaratsubaElement(elemVal);
+}
 
 
 template <>

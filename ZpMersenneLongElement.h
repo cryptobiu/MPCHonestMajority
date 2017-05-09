@@ -7,12 +7,14 @@
 
 using namespace std;
 
+static const unsigned long p = 2305843009213693951;
+
 class ZpMersenneLongElement {
 
 //private:
 public: //TODO return to private after tesing
 
-    static const unsigned long p = 2305843009213693951;
+
     unsigned long elem;
 
 public:
@@ -30,6 +32,8 @@ public:
 
     inline ZpMersenneLongElement& operator+=(const ZpMersenneLongElement& f2){ elem = (f2.elem + elem) %p; return *this;};
     ZpMersenneLongElement& operator*=(const ZpMersenneLongElement& f2);
+
+
 
 
 

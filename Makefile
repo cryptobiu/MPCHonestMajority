@@ -339,6 +339,33 @@ VDM.cpp.s:
 	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/VDM.cpp.s
 .PHONY : VDM.cpp.s
 
+ZpKaratsubaElement.o: ZpKaratsubaElement.cpp.o
+
+.PHONY : ZpKaratsubaElement.o
+
+# target to build an object file
+ZpKaratsubaElement.cpp.o:
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpKaratsubaElement.cpp.o
+.PHONY : ZpKaratsubaElement.cpp.o
+
+ZpKaratsubaElement.i: ZpKaratsubaElement.cpp.i
+
+.PHONY : ZpKaratsubaElement.i
+
+# target to preprocess a source file
+ZpKaratsubaElement.cpp.i:
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpKaratsubaElement.cpp.i
+.PHONY : ZpKaratsubaElement.cpp.i
+
+ZpKaratsubaElement.s: ZpKaratsubaElement.cpp.s
+
+.PHONY : ZpKaratsubaElement.s
+
+# target to generate assembly for a file
+ZpKaratsubaElement.cpp.s:
+	$(MAKE) -f CMakeFiles/MPCHonestMajority.dir/build.make CMakeFiles/MPCHonestMajority.dir/ZpKaratsubaElement.cpp.s
+.PHONY : ZpKaratsubaElement.cpp.s
+
 ZpMersenneIntElement.o: ZpMersenneIntElement.cpp.o
 
 .PHONY : ZpMersenneIntElement.o
@@ -453,6 +480,9 @@ help:
 	@echo "... VDM.o"
 	@echo "... VDM.i"
 	@echo "... VDM.s"
+	@echo "... ZpKaratsubaElement.o"
+	@echo "... ZpKaratsubaElement.i"
+	@echo "... ZpKaratsubaElement.s"
 	@echo "... ZpMersenneIntElement.o"
 	@echo "... ZpMersenneIntElement.i"
 	@echo "... ZpMersenneIntElement.s"

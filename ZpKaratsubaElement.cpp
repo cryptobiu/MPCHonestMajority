@@ -17,10 +17,13 @@ ZpKaratsubaElement::ZpKaratsubaElement()
 
 ZpKaratsubaElement::ZpKaratsubaElement(long elem)
 {
-    this->elem = elem % p;
 
-    if(this->elem<0){
-        this->elem = elem + p;
+    if(elem>0 && elem<p){
+        this->elem = elem;
+    }
+    else {
+        this->elem = elem % p;
+
     }
 }
 
@@ -34,6 +37,17 @@ ZpKaratsubaElement ZpKaratsubaElement::operator+(const ZpKaratsubaElement& f2)
         answer.elem-=p;
 
     return answer;
+}
+
+
+ZpKaratsubaElement& ZpKaratsubaElement::operator+=(const ZpKaratsubaElement& f2){
+
+    elem += f2.elem;
+
+    if(elem>=p)
+        elem-=p;
+    return *this;
+
 }
 
 ZpKaratsubaElement ZpKaratsubaElement::operator-(const ZpKaratsubaElement& f2)
@@ -56,37 +70,109 @@ ZpKaratsubaElement ZpKaratsubaElement::operator*(const ZpKaratsubaElement& f2)
 {
     ZpKaratsubaElement answer;
 
-    unsigned long x1 = elem >> 8; // the top 56 bit (should be only 32 bit)
-    unsigned long y1 = f2.elem >> 8;
 
-    unsigned long x0 = elem & 0xFF;
-    unsigned long y0 = f2.elem & 0xFF;
+    if(f2.elem< 8388608 || elem<8388608)
+        answer.elem = (f2.elem * elem) %p;
+    else {
 
-    unsigned long u0 = x1 * y1;
+        long x1 = elem >> 9; // the top 56 bit (should be only 32 bit)
+        long y1 = f2.elem >> 9;
 
-    // mod p
-    u0 = u0 % p;
+        long x0 = elem & (512-1);
+        long y0 = f2.elem & (512-1);
 
-    //unsigned long u1 = (u0 << 8) + (u0 << 16);
+        long u0 = x1 * y1;
 
-  //  unsigned long v0 = (x1 - x0) * (y1 - y0);
+        // mod p
+        u0 = u0 % p;
 
-    // mod p
-   // v0 = v0 % p;
+        if(u0<0){
+            u0+=p;
+        }
 
-    //unsigned long v1 = v0 << 8;
+       // unsigned long u1 = (u0 << 8) + (u0 << 16);
 
-    unsigned long w0 = x0 * y0;
+        long v0 = (x1 - x0) * (y1 - y0);
 
-   // unsigned long w1 = (w0 << 8) + w0;
+        long temp = (v0 %p)<<9;
 
-   // unsigned long result = ((u0 << 8) + (u0 << 16)) - (v0 << 8) + ((w0 << 8) + w0);
+        // mod p
+       // v0 = v0 % p;
 
-    // mod p
-    answer.elem = (((u0 << 8) + (u0 << 16)) - ((((x1 - x0) * (y1 - y0)) % p) << 8) + ((w0 << 8) + w0)) % p;
+        //unsigned long v1 = v0 << 8;
 
+        long w0 = x0 * y0;
+
+        long a = -98;
+        long b = a%11;
+
+        long intermediate = ((u0 << 9) + (u0 << 18)) - ((((x1 - x0) * (y1 - y0)) % p) << 9);
+
+        long w1 = (w0 << 8) + w0;
+
+        long result = ((u0 << 9) + (u0 << 18));
+
+        if(((u0 << 9) + (u0 << 18)) < ((((x1 - x0) * (y1 - y0)) % p) << 9)){
+
+            //cout<<"bad mult comp"<<endl;
+            //cout<<"f2.elem = "<<f2.elem<<endl;
+            //cout<<"elem = "<<elem<<endl;
+
+            intermediate = intermediate % (long)p;
+            if(intermediate<0)
+                intermediate = intermediate + p;
+
+        }
+
+        // mod p
+        answer.elem = (intermediate + ((w0 << 9) + w0)) % p;
+    }
     return answer;
 }
+
+
+
+ZpKaratsubaElement& ZpKaratsubaElement::operator*=(const ZpKaratsubaElement& f2){
+
+    if(f2.elem< 8388608 || elem<8388608)
+        elem = (f2.elem * elem) %p;
+    else {
+
+        unsigned long x1 = elem >> 8; // the top 56 bit (should be only 32 bit)
+        unsigned long y1 = f2.elem >> 8;
+
+        unsigned long x0 = elem & 0xFF;
+        unsigned long y0 = f2.elem & 0xFF;
+
+        unsigned long u0 = x1 * y1;
+
+        // mod p
+        u0 = u0 % p;
+
+        // unsigned long u1 = (u0 << 8) + (u0 << 16);
+
+        //unsigned long v0 = (x1 - x0) * (y1 - y0);
+
+        // mod p
+        // v0 = v0 % p;
+
+        //unsigned long v1 = v0 << 8;
+
+        unsigned long w0 = x0 * y0;
+
+        // unsigned long w1 = (w0 << 8) + w0;
+
+        //unsigned long result = ((u0 << 8) + (u0 << 16)) - (v0 << 8) + ((w0 << 8) + w0);
+
+        // mod p
+        elem = (((u0 << 8) + (u0 << 16)) - ((((x1 - x0) * (y1 - y0)) % p) << 8) + ((w0 << 8) + w0)) % p;
+    }
+
+    return *this;
+
+}
+
+
 
 ZpKaratsubaElement& ZpKaratsubaElement::operator=(const ZpKaratsubaElement& other) // copy assignment
 {
@@ -153,23 +239,7 @@ ZpKaratsubaElement ZpKaratsubaElement::operator/(const ZpKaratsubaElement& f2)
 
     answer.elem = mpz_get_ui(result);
 
-    cout << "result of div is : " << result << endl;
-    cout << "result of modulo is : " << d << endl;
-
-//    ZpKaratsubaElement answer;
-//
-//    unsigned long r_gcd, x, y;
-//    gcd (f2.elem, p, r_gcd, x, y);  // x B + y m = gcd(B,m)
-//    if (elem % r_gcd == 0) {
-//        unsigned long q = elem / r_gcd;       // x q B + y q m = m gcd = A
-//        answer.elem = ((x + p) * q) % (p / r_gcd);   // Return the smallest result possible
-//        return answer;
-//    }
-
-
 
     return answer;
-
-
 
 }

@@ -50,143 +50,126 @@ __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
 int main(int argc, char* argv[])
 {
 
-    //generate a pseudo random generator to generate the keys
-    PrgFromOpenSSLAES prg(100*1000000);
-    auto randomKey = prg.generateKey(128);
-    prg.setKey(randomKey);
+//    //generate a pseudo random generator to generate the keys
+//    PrgFromOpenSSLAES prg(100*1000000);
+//    auto randomKey = prg.generateKey(128);
+//    prg.setKey(randomKey);
+//
+//
+//    vector<ZpKaratsubaElement> kar(20000000);
+//
+//
+//
+//    for(int i=0; i<20000000; i++){
+//
+//        ZpKaratsubaElement a(prg.getRandom64());
+//        kar[i] = a;
+//    }
+//
+//
+//
+//    auto duration_avg = 0;
+//
+//
+//
+//
+//    mpz_t rop;
+//    mpz_t op1;
+//    mpz_t op2;
+//    mpz_t result;
+//    mpz_t d;
+//
+//    mpz_init_set_str (op1, "181254622435", 10);
+//    mpz_init_set_str (op2, "850793430687", 10);
+//    mpz_init_set_str (d, "1071482619497", 10);
+//
+//    mpz_init(rop);
+//    mpz_init(result);
+//
+//    mpz_mul (rop, op1, op2);
+//    mpz_mod (result, rop, d);
+//
+//    cout << "result of b*a is : " << result << endl;
+//
+//    mpz_mul (rop, op2, op1);
+//    mpz_mod (result, rop, d);
+//
+//
+//    cout << "result of a*b is : " << result << endl;
+//
+//
+//
+//
+//    duration_avg = 0;
+//    auto t1 = high_resolution_clock::now();
+//
+//    for(int i=0; i<10000000; i++) {
+//
+//
+//
+//            mpz_mul (rop, op1, op2);
+//            mpz_mod (result, rop, d);
+//
+//
+//
+//    }
+//    auto t2 = high_resolution_clock::now();
+//
+//    auto duration = duration_cast<microseconds>(t2 - t1).count();
+//
+//    duration_avg += duration;
+//    //duration_avg = duration_avg;
+//
+//
+//    cout << "time in milliseconds : " << duration_avg << endl;
+//
+//    duration_avg = 0;
+//    ZpKaratsubaElement a(181254622435);
+//    ZpKaratsubaElement b(850793430687);
+//
+//    auto ab = a*b;
+//    auto ba = b*a;
+//
+//    cout<<"a*b = " <<ab.elem<<endl;
+//    cout<<"b*a = " <<ba.elem<<endl;
+//
+//    a/b;
+//
+//    b/a;
+//
+//    cout<<"result of kar a/b = " <<(a/b).elem<<endl;
+//
+//
+//
+//    ZpKaratsubaElement c;
+//
+//    //ZpMersenneIntElement p(1071482619497);
+//
+//     t1 = high_resolution_clock::now();
+//    for(int i=0; i<10000000; i++) {
+//
+//
+//
+//
+//
+//           // c = kar[i]*kar[2*i];
+//
+//
+//
+//    }
+//     t2 = high_resolution_clock::now();
+//
+//     duration = duration_cast<microseconds>(t2 - t1).count();
+//
+//    duration_avg += duration;
+//    //duration_avg = duration_avg;
+//
+//
+//    cout << "time in milliseconds : " << duration_avg << endl;
+//
+//
+//return 0;
 
-
-    vector<ZpKaratsubaElement> kar(20000000);
-
-
-
-    for(int i=0; i<20000000; i++){
-
-        ZpKaratsubaElement a(i);
-        kar[i] = a;
-    }
-
-
-
-    auto duration_avg = 0;
-
-
-
-
-    mpz_t rop;
-    mpz_t op1;
-    mpz_t op2;
-    mpz_t result;
-    mpz_t d;
-
-    mpz_init_set_str (op1, "1071482619499", 10);
-    mpz_init_set_str (op2, "107082619498", 10);
-    mpz_init_set_str (d, "1071482619497", 10);
-
-    mpz_init(rop);
-    mpz_init(result);
-
-    mpz_mul (rop, op1, op2);
-    mpz_mod (result, rop, d);
-
-    cout << "result of b*a is : " << result << endl;
-
-    mpz_mul (rop, op2, op1);
-    mpz_mod (result, rop, d);
-
-
-    cout << "result of a*b is : " << result << endl;
-
-
-
-
-    duration_avg = 0;
-    auto t1 = high_resolution_clock::now();
-
-    for(int i=0; i<10000000; i++) {
-
-
-
-            mpz_mul (rop, op1, op2);
-            mpz_mod (result, rop, d);
-
-
-
-    }
-    auto t2 = high_resolution_clock::now();
-
-    auto duration = duration_cast<microseconds>(t2 - t1).count();
-
-    duration_avg += duration;
-    //duration_avg = duration_avg;
-
-
-    cout << "time in milliseconds : " << duration_avg << endl;
-
-    duration_avg = 0;
-    ZpKaratsubaElement a(1071482619495);
-    ZpKaratsubaElement b(2);
-
-    auto ab = a*b;
-    auto ba = b*a;
-
-    cout<<"a*b = " <<ab.elem<<endl;
-    cout<<"b*a = " <<ba.elem<<endl;
-
-    a/b;
-
-    b/a;
-
-    cout<<"result of kar a/b = " <<(a/b).elem<<endl;
-
-
-
-    ZpKaratsubaElement c;
-
-    //ZpMersenneIntElement p(1071482619497);
-
-     t1 = high_resolution_clock::now();
-    for(int i=0; i<10000000; i++) {
-
-
-
-
-
-            c = kar[i]*kar[2*i];
-
-
-
-    }
-     t2 = high_resolution_clock::now();
-
-     duration = duration_cast<microseconds>(t2 - t1).count();
-
-    duration_avg += duration;
-    //duration_avg = duration_avg;
-
-
-    cout << "time in milliseconds : " << duration_avg << endl;
-
-
-
-
-
-
-    /* __m128 a = _mm_set_ps(10.0, 0.0, 0.0, 10.0);
-     __m128 b = _mm_set_ps(0.0, 3.0, 3.0, 0.0);
-
-     long p = 1071482619497;
-
-     //__m128i res = a%1071482619497;
-     __m128i res = _mm_mod_ps2(a,b);
-
-     long *arr = (long*)&res;
-     long *before = (long*)&a;
-
-     cout<< "before :"<<before[0]<< ","<< before[1]<<endl;
-
-     cout<< "after :"<<arr[0]<< ","<< arr[1];
- */
 
 
 /*    int timesfield = 1000000;
@@ -275,138 +258,159 @@ int main(int argc, char* argv[])
 
     return 0;
 */
-//    if(argc != 10)
-//    {
-//        cout << "wrong number of arguments";
-//        return 0;
-//    }
-//
-//    int times = 1;
-//    string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + ".csv";
-//    ProtocolTimer p(times, outputTimerFileName);
-//
-//    string fieldType(argv[6]);
-//
-//
-//
-//    if(fieldType.compare("ZpMensenne") == 0)
-//    {
-//        TemplateField<ZpMersenneIntElement> *field = new TemplateField<ZpMersenneIntElement>(2147483647);
-//
-//       /* //test bytes to elemet and vice versa
-//        ZpMersenneIntElement test,test2;
-//
-//        ZpMersenneIntElement answer(0);
-//
-//        byte* testBytes = new byte[4];
-//
-//        field->elementToBytes(testBytes, test);
-//
-//        auto returnedElem = field->bytesToElement(testBytes);
-//
-//        ZZ_p::init(ZZ(2147483647));
-//        ZZ_p result(5);
-//
-//        for(int i=0; i<100000; i++){
-//
-//            ZpMersenneIntElement index(i*10000);
-//
-//            test = field->Random();
-//            test2 = field->Random();
-//
-//            answer = 1;
-//            result = 1;
-//
-//            answer *= i;//test * test2;
-//            result *= i;//ZZ_p(test.elem) * ZZ_p(test2.elem);
-//
-//
-//
-//            field->elementToBytes(testBytes, answer);
-//
-//            auto returnedElem = field->bytesToElement(testBytes);
-//
-//            if(returnedElem!=answer){
-//                cout<<"problem parsing"<<endl;
-//            }
-//
-//            if(to_uint(rep(result)) !=answer.elem){
-//
-//                cout<<"problem for test = " << test << "index =" <<index << "test2 = " << test2<<endl;
-//                cout<<"answer for zzp = " << result << "answer for mensenne =" <<answer<<endl;
-//
-//                cout<<"mensenne mult = " <<  (test * index)<<endl;
-//                cout<<"zzp mult = " <<  to_uint(rep((ZZ_p(test.elem) * ZZ_p(index.elem))))<<endl;
-//
-//
-//            }
-//        }
-//
-//
-//*/
-//
-//
-//        Protocol<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
-//        auto t1 = high_resolution_clock::now();
-//        for(int i=0; i<times; i++) {
-//            protocol.run(i);
-//        }
-//        auto t2 = high_resolution_clock::now();
-//
-//        auto duration = duration_cast<milliseconds>(t2-t1).count();
-//        cout << "time in milliseconds for " << times << " runs: " << duration << endl;
-//
-//        delete field;
-//
-//        p.writeToFile();
-//
-//        cout << "end main" << '\n';
-//    }
-//
-//
-//    if(fieldType.compare("GF2m") == 0)
-//    {
-//        TemplateField<GF2E> *field = new TemplateField<GF2E>(8);
-//
-//        Protocol<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
-//        auto t1 = high_resolution_clock::now();
-//        for(int i=0; i<times; i++) {
-//            protocol.run(i);
-//        }
-//        auto t2 = high_resolution_clock::now();
-//
-//        auto duration = duration_cast<milliseconds>(t2-t1).count();
-//        cout << "time in milliseconds for " << times << " runs: " << duration << endl;
-//
-//        delete field;
-//
-//        p.writeToFile();
-//
-//        cout << "end main" << '\n';
-//    }
-//
-//    if(fieldType.compare("Zp") == 0)
-//    {
-//        TemplateField<ZZ_p> * field = new TemplateField<ZZ_p>(2147483647);
-//
-//        Protocol<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
-//
-//        auto t1 = high_resolution_clock::now();
-//        for(int i=0; i<times; i++) {
-//            protocol.run(i);
-//        }
-//        auto t2 = high_resolution_clock::now();
-//
-//        auto duration = duration_cast<milliseconds>(t2-t1).count();
-//        cout << "time in milliseconds for " << times << " runs: " << duration << endl;
-//
-//        delete field;
-//
-//        p.writeToFile();
-//
-//        cout << "end main" << '\n';
-//
-//    }
-//
-//    return 0;
+    if(argc != 10)
+    {
+        cout << "wrong number of arguments";
+        return 0;
+    }
+
+    int times = 1;
+    string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + ".csv";
+    ProtocolTimer p(times, outputTimerFileName);
+
+    string fieldType(argv[6]);
+
+
+
+    if(fieldType.compare("ZpMensenne") == 0)
+    {
+        TemplateField<ZpMersenneIntElement> *field = new TemplateField<ZpMersenneIntElement>(2147483647);
+
+        Protocol<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
+        auto t1 = high_resolution_clock::now();
+        for(int i=0; i<times; i++) {
+            protocol.run(i);
+        }
+        auto t2 = high_resolution_clock::now();
+
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "time in milliseconds for " << times << " runs: " << duration << endl;
+
+        delete field;
+
+        p.writeToFile();
+
+        cout << "end main" << '\n';
+
+       /* //test bytes to elemet and vice versa
+        ZpMersenneIntElement test,test2;
+
+        ZpMersenneIntElement answer(0);
+
+        byte* testBytes = new byte[4];
+
+        field->elementToBytes(testBytes, test);
+
+        auto returnedElem = field->bytesToElement(testBytes);
+
+        ZZ_p::init(ZZ(2147483647));
+        ZZ_p result(5);
+
+        for(int i=0; i<100000; i++){
+
+            ZpMersenneIntElement index(i*10000);
+
+            test = field->Random();
+            test2 = field->Random();
+
+            answer = 1;
+            result = 1;
+
+            answer *= i;//test * test2;
+            result *= i;//ZZ_p(test.elem) * ZZ_p(test2.elem);
+
+
+
+            field->elementToBytes(testBytes, answer);
+
+            auto returnedElem = field->bytesToElement(testBytes);
+
+            if(returnedElem!=answer){
+                cout<<"problem parsing"<<endl;
+            }
+
+            if(to_uint(rep(result)) !=answer.elem){
+
+                cout<<"problem for test = " << test << "index =" <<index << "test2 = " << test2<<endl;
+                cout<<"answer for zzp = " << result << "answer for mensenne =" <<answer<<endl;
+
+                cout<<"mensenne mult = " <<  (test * index)<<endl;
+                cout<<"zzp mult = " <<  to_uint(rep((ZZ_p(test.elem) * ZZ_p(index.elem))))<<endl;
+
+
+            }
+        }
+
+
+*/
+    }
+    else if(fieldType.compare("ZpKaratsuba") == 0) {
+        TemplateField<ZpKaratsubaElement> *field = new TemplateField<ZpKaratsubaElement>(0);
+
+
+        Protocol<ZpKaratsubaElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p,
+                                              argv[7], argv[8], argv[9]);
+        auto t1 = high_resolution_clock::now();
+        for (int i = 0; i < times; i++) {
+            protocol.run(i);
+        }
+        auto t2 = high_resolution_clock::now();
+
+        auto duration = duration_cast<milliseconds>(t2 - t1).count();
+        cout << "time in milliseconds for " << times << " runs: " << duration << endl;
+
+        delete field;
+
+        p.writeToFile();
+
+        cout << "end main" << '\n';
+    }
+
+
+
+    else if(fieldType.compare("GF2m") == 0)
+    {
+        TemplateField<GF2E> *field = new TemplateField<GF2E>(8);
+
+        Protocol<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
+        auto t1 = high_resolution_clock::now();
+        for(int i=0; i<times; i++) {
+            protocol.run(i);
+        }
+        auto t2 = high_resolution_clock::now();
+
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "time in milliseconds for " << times << " runs: " << duration << endl;
+
+        delete field;
+
+        p.writeToFile();
+
+        cout << "end main" << '\n';
+    }
+
+    else if(fieldType.compare("Zp") == 0)
+    {
+        TemplateField<ZZ_p> * field = new TemplateField<ZZ_p>(2147483647);
+
+        Protocol<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
+
+        auto t1 = high_resolution_clock::now();
+        for(int i=0; i<times; i++) {
+            protocol.run(i);
+        }
+        auto t2 = high_resolution_clock::now();
+
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "time in milliseconds for " << times << " runs: " << duration << endl;
+
+        delete field;
+
+        p.writeToFile();
+
+        cout << "end main" << '\n';
+
+    }
+
+    return 0;
 }
