@@ -28,7 +28,8 @@ public:
 template <class FieldType>
 void DNHonestMult<FieldType>::invokeOffline(){
 
-    protocol->generateRandom2TAndTShares(numOfRandoms,randomTAnd2TShares);
+    offset = 0;
+    //protocol->generateRandom2TAndTShares(numOfRandoms,randomTAnd2TShares);
 }
 
 template <class FieldType>

@@ -27,7 +27,7 @@
 #define flag_print_timings true
 #define flag_print_output true
 
-#define MAX_PRSS_PARTIES 32
+#define MAX_PRSS_PARTIES 16
 
 
 using namespace std;
@@ -344,9 +344,9 @@ Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, st
     }
     if(multType=="DN"){
         if(verifyType=="Single")
-            honestMult = new DNHonestMult<FieldType>(circuit.getNrOfMultiplicationGates(), this);
+            honestMult = new DNHonestMult<FieldType>(0, this);
         else if(verifyType=="Batch")
-            honestMult = new DNHonestMult<FieldType>(6*circuit.getNrOfMultiplicationGates(), this);
+            honestMult = new DNHonestMult<FieldType>(0, this);
     }
 
     this->protocolTimer = protocolTimer;
@@ -372,6 +372,7 @@ Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, st
     numOfOutputGates = circuit.getNrOfOutputGates();
     myInputs.resize(numOfInputGates);
     shareIndex = numOfInputGates;
+    counter = 0;
 
 
     //comm->ConnectionToServer(s);
@@ -639,23 +640,8 @@ void Protocol<FieldType>::readMyInputs()
 template <class FieldType>
 void Protocol<FieldType>::run(int iteration) {
 
-
-    //int array[26]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
-   /* bitset<MAX_PRSS_PARTIES> lt;
-    auto t1 = high_resolution_clock::now();
-    firstIndex.push_back(0);
-    subset(26,14,0,lt);
-    auto t2 = high_resolution_clock::now();
-
-    auto duration = duration_cast<milliseconds>(t2-t1).count();
-
-    cout<<"number of subsets is " << allSubsets.size();
-
-    cout << "time in milliseconds for N=: " <<20 <<"is:" << duration << endl;
-*/
-
-
     shareIndex = numOfInputGates;
+    firstIndex.clear();
 
     auto t1start = high_resolution_clock::now();
     auto t1 = high_resolution_clock::now();
@@ -1503,11 +1489,11 @@ bool Protocol<FieldType>::preparationPhase()
 
             int iterations =   (5 + field->getElementSizeInBytes() - 1) / field->getElementSizeInBytes();
             offlineDNForMultiplication(
-                    2 * circuit.getNrOfMultiplicationGates() + 5 * iterations* circuit.getNrOfMultiplicationGates());
+                    2 * circuit.getNrOfMultiplicationGates() + 4 * iterations* circuit.getNrOfMultiplicationGates());
         }
     }
 
-    //honestMult->invokeOffline();
+    honestMult->invokeOffline();//need to pust some
 
     generateBeaverTriples(circuit.getNrOfMultiplicationGates());
 
@@ -2275,8 +2261,6 @@ void Protocol<FieldType>::verificationPhase() {
     //calc the number of times we need to run the verification -- ceiling
     int iterations =   (5 + field->getElementSizeInBytes() - 1) / field->getElementSizeInBytes();
 
-    vector<FieldType> randomElements(numOfRandomelements*iterations);
-    generatePseudoRandomElements(key, randomElements, numOfRandomelements*iterations);
 
     //print key
     //if(flag_print) {
@@ -2315,6 +2299,10 @@ void Protocol<FieldType>::verificationPhase() {
     bool answer;
     if (verifyType == "Batch") {
 
+        vector<FieldType> randomElements(numOfRandomelements*iterations);
+        generatePseudoRandomElements(key, randomElements, numOfRandomelements*iterations);
+
+
         for(int i=0; i<iterations; i++) {
 
             cout << "verify batch for party " << m_partyId << endl;
@@ -2329,13 +2317,17 @@ void Protocol<FieldType>::verificationPhase() {
     }
     else if (verifyType == "Single")
     {
+
+        vector<FieldType> randomElements(numOfRandomelements*2*iterations);
+        generatePseudoRandomElements(key, randomElements, numOfRandomelements*2*iterations);
+
         cout<<"verify single for party "<< m_partyId <<endl;
         //call the verification sub protocol
         for(int i=0; i<iterations; i++) {
             answer = verificationOfSingleTriples(x.data(), y.data(), z.data(),
                                                  randomABShares.data(), randomABShares.data() + numOfMultGates,
                                                  c.data(),
-                                                 randomElements.data() +  numOfRandomelements * i ,
+                                                 randomElements.data() +  numOfRandomelements*2 * i ,
                                                  numOfMultGates);
 
             cout<<"answer is : "<< answer<<" for iteration : "<<i <<endl;
@@ -2481,9 +2473,9 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
 
     vector<FieldType> r(numOfTriples);//vector holding the random shares generated
     vector<FieldType> rx(numOfTriples);//vector holding the multiplication of x and r
-    vector<FieldType> firstMult(4*numOfTriples);//vector some computations
-    vector<FieldType> secondMult(4*numOfTriples);//vector some computations
-    vector<FieldType> outputMult(4*numOfTriples);//vector holding the 4*numOfTriples output of the multiplication
+    vector<FieldType> firstMult(3*numOfTriples);//vector some computations
+    vector<FieldType> secondMult(3*numOfTriples);//vector some computations
+    vector<FieldType> outputMult(3*numOfTriples);//vector holding the 4*numOfTriples output of the multiplication
     vector<FieldType> v(numOfTriples);//vector holding the 4*numOfTriples output of the multiplication
 
     //first generate numOfTriples random shares
@@ -2499,30 +2491,27 @@ bool Protocol<FieldType>::verificationOfBatchedTriples(FieldType *x, FieldType *
     //prepare the 4k pairs for multiplication
     for(int k=0; k<numOfTriples; k++){
 
-        firstMult[k*4] = rx[k] + a[k];//the row assignment (look at the paper)
-        secondMult[k*4] = b[k];
+        firstMult[k*3] = rx[k] + a[k];//the row assignment (look at the paper)
+        secondMult[k*3] = y[k];
 
-        firstMult[k*4+1] = a[k];
-        secondMult[k*4+1] = y[k] + b[k];
+        firstMult[k*3+1] = a[k];
+        secondMult[k*3+1] = y[k] + b[k];
 
-        firstMult[k*4+2] = firstMult[k*4];
-        secondMult[k*4+2] = secondMult[k*4+1];
-
-        firstMult[k*4+3] = r[k];
-        secondMult[k*4+3] = z[k];
+        firstMult[k*3+2] = r[k];
+        secondMult[k*3+2] = z[k];
 
 
     }
 
     //run semi-honest multiplication on x and r
     //GRRHonestMultiplication(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
-    honestMult->mult(firstMult.data(), secondMult.data(),outputMult, numOfTriples*4);
+    honestMult->mult(firstMult.data(), secondMult.data(),outputMult, numOfTriples*3);
 
     //compute the output share to check
     FieldType vk;
     FieldType VShare;
     for(int k=0; k<numOfTriples; k++){
-        vk = outputMult[4*k + 3] -c[k] + outputMult[4*k + 1] + outputMult[4*k] - outputMult[4*k + 2];
+        vk = outputMult[3*k + 2] -c[k] + outputMult[3*k + 1] - outputMult[3*k];
         VShare += vk*randomElements[k];
 
     }
@@ -2571,20 +2560,26 @@ bool Protocol<FieldType>::verificationOfSingleTriples(FieldType *x, FieldType *y
 
     vector<FieldType> shareArrV(numOfTriples);
 
+
+    FieldType VShare(0);
     //compute the output share array
     for(int k=0; k<numOfTriples; k++){
-        shareArrV[k] = randomElements[k]*z[k] - c[k] + secretArr[2*k+1]*a[k]+ secretArr[2*k]*b[k] - secretArr[2*k] * secretArr[2*k + 1];
+        VShare += (randomElements[k]*z[k] - c[k] + secretArr[2*k+1]*a[k]+ secretArr[2*k]*b[k] - secretArr[2*k] * secretArr[2*k + 1])*randomElements[numOfTriples + k];
     }
 
-    openShare(numOfTriples,shareArrV,secretArrResultsV);
 
-    //check that V=0 for each element
-    for(int i=0; i< numOfTriples; i++){
-        if(secretArrResultsV[i] != *field->GetZero())
-            return false;
-    }
+    //open [V]
+    vector<FieldType> shareArr(1);
+    vector<FieldType> secretArrV(1);
+    shareArr[0] = VShare;
 
-    return true;
+    openShare(1,shareArr,secretArrV);
+
+    //check that V=0
+    if(secretArrV[0] != *field->GetZero())
+        return false;
+    else
+        return true;
 
 
 }
