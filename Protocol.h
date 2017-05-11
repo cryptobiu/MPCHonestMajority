@@ -2441,9 +2441,11 @@ void Protocol<FieldType>::verificationPhase() {
 template <class FieldType>
 void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, vector<FieldType> &randomElementsToFill, int numOfRandomElements){
 
+
+    int fieldSize = field->getElementSizeInBytes();
     bool isLongRandoms;
     int size;
-    if(field->getElementSizeInBytes()>4){
+    if(fieldSize>4){
       isLongRandoms = true;
       size = 8;
     }
@@ -2463,7 +2465,7 @@ void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, ve
     for(int i=0; i<numOfRandomElements; i++){
 
       if(isLongRandoms)
-          randomElementsToFill[i] = field->GetElement(prg.getRandom64());
+          randomElementsToFill[i] = field->GetElement(prg.getRandom64()<<(64 - fieldSize*8));
       else
           randomElementsToFill[i] = field->GetElement(prg.getRandom32());
     }

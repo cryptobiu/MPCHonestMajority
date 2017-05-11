@@ -18,7 +18,7 @@ ZpKaratsubaElement::ZpKaratsubaElement()
 ZpKaratsubaElement::ZpKaratsubaElement(long elem)
 {
 
-    if(elem>0 && elem<p){
+    if(elem>=0 && elem<p){
         this->elem = elem;
     }
     else {
@@ -70,64 +70,48 @@ ZpKaratsubaElement ZpKaratsubaElement::operator*(const ZpKaratsubaElement& f2)
 {
     ZpKaratsubaElement answer;
 
+    unsigned long result;
+    if(f2.elem< 8388608 || elem<8388608) {
+        answer.elem = (f2.elem * elem);
 
-    if(f2.elem< 8388608 || elem<8388608)
-        answer.elem = (f2.elem * elem) %p;
+        if (answer.elem > p)
+            answer.elem = answer.elem % p;
+    }
     else {
 
-        long x1 = elem >> 9; // the top 56 bit (should be only 32 bit)
-        long y1 = f2.elem >> 9;
+        unsigned long x1 = elem >> 9; // the top 56 bit (should be only 32 bit)
+        unsigned long y1 = f2.elem >> 9;
 
-        long x0 = elem & (512-1);
-        long y0 = f2.elem & (512-1);
+        unsigned long x0 = elem & (512-1);
+        unsigned long y0 = f2.elem & (512-1);
 
-        long u0 = x1 * y1;
+        unsigned long u0 = (x1 * y1)%p;
 
-        // mod p
-        u0 = u0 % p;
-
-        if(u0<0){
-            u0+=p;
-        }
-
-       // unsigned long u1 = (u0 << 8) + (u0 << 16);
-
-        long v0 = (x1 - x0) * (y1 - y0);
-
-        long temp = (v0 %p)<<9;
-
-        // mod p
-       // v0 = v0 % p;
-
-        //unsigned long v1 = v0 << 8;
-
-        long w0 = x0 * y0;
-
-        long a = -98;
-        long b = a%11;
+        unsigned long w0 = x0 * y0;
 
         long intermediate = ((u0 << 9) + (u0 << 18)) - ((((x1 - x0) * (y1 - y0)) % p) << 9);
 
-        long w1 = (w0 << 8) + w0;
-
-        long result = ((u0 << 9) + (u0 << 18));
-
-        if(((u0 << 9) + (u0 << 18)) < ((((x1 - x0) * (y1 - y0)) % p) << 9)){
-
-            //cout<<"bad mult comp"<<endl;
-            //cout<<"f2.elem = "<<f2.elem<<endl;
-            //cout<<"elem = "<<elem<<endl;
+        if(intermediate<0){
 
             intermediate = intermediate % (long)p;
-            if(intermediate<0)
-                intermediate = intermediate + p;
+
+            result = intermediate + p + ((w0 << 9) + w0);
+
+            if(result>=p)
+                result-=p;
+
+            // mod p
+            answer.elem = result;
 
         }
+        else {
 
-        // mod p
-        answer.elem = (intermediate + ((w0 << 9) + w0)) % p;
+            // mod p
+            answer.elem = (intermediate + ((w0 << 9) + w0)) % p;
+        }
     }
     return answer;
+
 }
 
 

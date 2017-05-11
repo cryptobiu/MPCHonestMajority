@@ -142,19 +142,17 @@ int main(int argc, char* argv[])
 //
 //
 //    ZpKaratsubaElement c;
+//    ZpKaratsubaElement small(500);
+//
 //
 //    //ZpMersenneIntElement p(1071482619497);
 //
 //     t1 = high_resolution_clock::now();
 //    for(int i=0; i<10000000; i++) {
 //
-//
-//
-//
-//
-//           // c = kar[i]*kar[2*i];
-//
-//
+//        //c = a*b;
+//            c = kar[i]*kar[2*i];
+//            //c = small*small;//kar[2*i];
 //
 //    }
 //     t2 = high_resolution_clock::now();
@@ -168,38 +166,81 @@ int main(int argc, char* argv[])
 //    cout << "time in milliseconds : " << duration_avg << endl;
 //
 //
-//return 0;
+//    mpz_t ropMen;
+//    mpz_t op1Men;
+//    mpz_t op2Men;
+//    mpz_t resultMen;
+//    mpz_t dMen;
+//
+//    mpz_init_set_str (op1Men, "200", 10);
+//    mpz_init_set_str (op2Men, "2147483642", 10);
+//    mpz_init_set_str (dMen, "2147483647", 10);
+//
+//    mpz_init(ropMen);
+//    mpz_init(resultMen);
+//
+//    mpz_mul (ropMen, op1Men, op2Men);
+//    mpz_mod (resultMen, ropMen, dMen);
+//
+//    cout << "result of b*a is : " << result << endl;
+//
+//    mpz_mul (ropMen, op2Men, op1Men);
+//    mpz_mod (resultMen, ropMen, dMen);
+//
+//
+//
+//
+//
+//    duration_avg = 0;
+//    t1 = high_resolution_clock::now();
+//
+//    for(int i=0; i<10000000; i++) {
+//
+//
+//
+//        mpz_mul (ropMen, op1Men, op2Men);
+//        mpz_mod (resultMen, ropMen, dMen);
+//
+//
+//
+//    }
+//    t2 = high_resolution_clock::now();
+//
+//    duration = duration_cast<microseconds>(t2 - t1).count();
+//
+//    duration_avg += duration;
+//
+//    cout << "time in micro for mersenne gmp : " << duration_avg << endl;
+//
+//    int timesfield = 10000000;
+//    ZZ_p::init(ZZ(2147483647));
+//
+//    //testing the mersenne field
+//
+//    ZpMersenneIntElement aMer(2147483646);
+//    ZpMersenneIntElement bMer(2147483643);
+//
+//    ZpMersenneIntElement cMer(2147483647);
+//
+//    c = a+b;
+//
+//    ZpMersenneIntElement mult;
+//    ZpMersenneIntElement div(2147483647);
+//
+//
+//
+//    t1 = high_resolution_clock::now();
+//    for(int i=0; i<timesfield; i++){
+//        mult = aMer*bMer;
+//    }
+//    t2 = high_resolution_clock::now();
+//
+//    duration = duration_cast<microseconds>(t2-t1).count();
+//    cout << "time in milliseconds for " << timesfield<< " mults: " << duration << endl;
+//
+//    return 0;
 
-
-
-/*    int timesfield = 1000000;
-    ZZ_p::init(ZZ(2147483647));
-
-    //testing the mersenne field
-
-    ZpMersenneIntElement a(2147483640);
-    ZpMersenneIntElement b(2147483641);
-
-    ZpMersenneIntElement c(2147483647);
-
-    c = a+b;
-
-    ZpMersenneIntElement mult(2147483647);
-    ZpMersenneIntElement div(2147483647);
-
-
-
-    auto t1 = high_resolution_clock::now();
-    for(int i=0; i<timesfield; i++){
-        mult = a*b;
-    }
-    auto t2 = high_resolution_clock::now();
-
-    auto duration = duration_cast<milliseconds>(t2-t1).count();
-    cout << "time in milliseconds for " << timesfield<< " mults: " << duration << endl;
-
-
-
+/*
     t1 = high_resolution_clock::now();
     for(int i=0; i<timesfield; i++){
         div = a/b;
