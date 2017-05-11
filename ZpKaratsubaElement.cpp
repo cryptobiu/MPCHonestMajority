@@ -118,38 +118,45 @@ ZpKaratsubaElement ZpKaratsubaElement::operator*(const ZpKaratsubaElement& f2)
 
 ZpKaratsubaElement& ZpKaratsubaElement::operator*=(const ZpKaratsubaElement& f2){
 
-    if(f2.elem< 8388608 || elem<8388608)
-        elem = (f2.elem * elem) %p;
+    unsigned long result;
+    if(f2.elem< 8388608 || elem<8388608) {
+        elem = (f2.elem * elem);
+
+        if (elem > p)
+            elem = elem % p;
+    }
     else {
 
-        unsigned long x1 = elem >> 8; // the top 56 bit (should be only 32 bit)
-        unsigned long y1 = f2.elem >> 8;
+        unsigned long x1 = elem >> 9; // the top 56 bit (should be only 32 bit)
+        unsigned long y1 = f2.elem >> 9;
 
-        unsigned long x0 = elem & 0xFF;
-        unsigned long y0 = f2.elem & 0xFF;
+        unsigned long x0 = elem & (512-1);
+        unsigned long y0 = f2.elem & (512-1);
 
-        unsigned long u0 = x1 * y1;
-
-        // mod p
-        u0 = u0 % p;
-
-        // unsigned long u1 = (u0 << 8) + (u0 << 16);
-
-        //unsigned long v0 = (x1 - x0) * (y1 - y0);
-
-        // mod p
-        // v0 = v0 % p;
-
-        //unsigned long v1 = v0 << 8;
+        unsigned long u0 = (x1 * y1)%p;
 
         unsigned long w0 = x0 * y0;
 
-        // unsigned long w1 = (w0 << 8) + w0;
+        long intermediate = ((u0 << 9) + (u0 << 18)) - ((((x1 - x0) * (y1 - y0)) % p) << 9);
 
-        //unsigned long result = ((u0 << 8) + (u0 << 16)) - (v0 << 8) + ((w0 << 8) + w0);
+        if(intermediate<0){
 
-        // mod p
-        elem = (((u0 << 8) + (u0 << 16)) - ((((x1 - x0) * (y1 - y0)) % p) << 8) + ((w0 << 8) + w0)) % p;
+            intermediate = intermediate % (long)p;
+
+            result = intermediate + p + ((w0 << 9) + w0);
+
+            if(result>=p)
+                result-=p;
+
+            // mod p
+            elem = result;
+
+        }
+        else {
+
+            // mod p
+            elem = (intermediate + ((w0 << 9) + w0)) % p;
+        }
     }
 
     return *this;
