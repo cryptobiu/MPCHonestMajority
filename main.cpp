@@ -3,6 +3,11 @@
 #include "Protocol.h"
 #include "ZpMersenneIntElement.h"
 #include "ZpKaratsubaElement.h"
+#include <smmintrin.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include "bmi2intrin.h"
+
 
 
 __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
@@ -12,6 +17,98 @@ __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
     __m128 base = _mm_mul_ps(cTrunc, aDiv);
     __m128 r = _mm_sub_ps(a, base);
     return r;
+}
+
+
+void mul128(__m128i a, __m128i b, __m128i *res1, __m128i *res2)
+{
+    __m128i tmp3, tmp4, tmp5, tmp6;
+
+    tmp3 = _mm_clmulepi64_si128(a, b, 0x00);
+    tmp4 = _mm_clmulepi64_si128(a, b, 0x10);
+    tmp5 = _mm_clmulepi64_si128(a, b, 0x01);
+    tmp6 = _mm_clmulepi64_si128(a, b, 0x11);
+
+    tmp4 = _mm_xor_si128(tmp4, tmp5);
+    tmp5 = _mm_slli_si128(tmp4, 8);
+    tmp4 = _mm_srli_si128(tmp4, 8);
+    tmp3 = _mm_xor_si128(tmp3, tmp5);
+    tmp6 = _mm_xor_si128(tmp6, tmp4);
+    // initial mul now in tmp3, tmp6
+    *res1 = tmp3;
+    *res2 = tmp6;
+}
+
+
+void multUlong(unsigned long a, unsigned long b, unsigned long *res1, unsigned long *res2){
+
+    unsigned int alow = ((int*)&a)[0];
+    unsigned int ahi = ((int*)&a)[1];
+    unsigned int blow = ((int*)&b)[0];
+    unsigned int bhi = ((int*)&b)[1];
+
+    uint64_t    a_lo = (uint32_t)a;
+    uint64_t    a_hi = a >> 32;
+    uint64_t    b_lo = (uint32_t)b;
+    uint64_t    b_hi = b >> 32;
+
+    uint64_t a_x_b_hi =  ahi * b_hi;
+    uint64_t a_x_b_mid = a_hi * b_lo;
+    uint64_t b_x_a_mid = b_hi * a_lo;
+    uint64_t a_x_b_lo =  a_lo * b_lo;
+
+
+    *res1 = a_x_b_lo + ((uint64_t)(uint32_t)a_x_b_mid +
+                       (uint64_t)(uint32_t)b_x_a_mid)<<32;
+
+
+    unsigned long carry_bit = ((uint64_t)(uint32_t)a_x_b_mid +
+                 (uint64_t)(uint32_t)b_x_a_mid +
+                 (a_x_b_lo >> 32) ) >> 32;
+
+    *res2 = a_x_b_hi +
+                         (a_x_b_mid >> 32) + (b_x_a_mid >> 32) +
+                         carry_bit;
+
+
+}
+
+unsigned long mersenneAdd(unsigned long high, unsigned long low){
+
+    unsigned long low61 = (low<<3);
+    unsigned long low61to64 = (low>>61);
+    unsigned long highShift3 = (high<<3);
+
+    unsigned long res = low61 + low61to64 + highShift3;
+
+    if(res >= 2305843009213693951)
+        res-= 2305843009213693951;
+
+    return res;
+
+
+}
+
+
+void multkarm(__m128i *c1, __m128i *c0, __m128i b,
+              __m128i a)
+{
+    __m128i t1, t2;
+    *c0 = _mm_clmulepi64_si128(a, b, 0x00);
+    *c1 = _mm_clmulepi64_si128(a, b, 0x11);
+    t1 = _mm_shuffle_epi32(a, 0xEE);
+    t1 = _mm_xor_si128(a, t1);
+    t2 = _mm_shuffle_epi32(b, 0xEE);
+    t2 = _mm_xor_si128(b, t2);
+    t1 = _mm_clmulepi64_si128(t1, t2, 0x00);
+    t1 = _mm_xor_si128(*c0, t1);
+    t1 = _mm_xor_si128(*c1, t1);
+    t2 = t1;
+    t1 = _mm_slli_si128(t1, 8);
+    t2 = _mm_srli_si128(t2, 8);
+    *c0 = _mm_xor_si128(*c0, t1);
+    *c1 = _mm_xor_si128(*c1, t2);
+
 }
 
 
@@ -49,6 +146,81 @@ __m128 _mm_mod_ps2(const __m128& a, const __m128& aDiv){
 
 int main(int argc, char* argv[])
 {
+
+//    int elem = 1000;
+//
+//    __m128i left =  _mm_set_epi32(0,0, 7, 7);
+//    __m128i right =  _mm_set_epi32(0,0, 7, 7);
+//    __m128i result = _mm_clmulepi64_si128(left, right, 0);
+//
+//    __m128i res1, res2;
+//    __m128i kar;
+//
+//
+//    mul128(left,right,&res1, &res2);
+//    multkarm(&res2,&kar,left,right);
+//
+//
+//
+//    uint64_t a = 100082619497;
+//    uint64_t b = 100082619497;
+//    uint64_t  d;
+//    long long unsigned int c;
+//    d = _mulx_u64(a, b, &c);
+//    cout<<"mult128 : "<<(unsigned long)c<<","<<(unsigned long)d<<endl;
+//
+//    //d = a*b;
+//
+//    cout<<"mult64 : "<<(unsigned long)d<<endl;
+//
+//    unsigned long resUlong;
+//    unsigned long res2Ulong;
+//
+//    multUlong(a,b,&resUlong, &res2Ulong);
+//
+//    cout<<"multUlong result : "<<(unsigned long)res2Ulong<<","<<(unsigned long)resUlong<<endl;
+//
+//    unsigned long mer = mersenneAdd(c, d);
+//
+//    cout<<"Mersenne result is : "<<mer<<endl;
+//
+//
+//
+//    mpz_t rop;
+//    mpz_t op1;
+//    mpz_t op2;
+//    mpz_t resultgmp;
+//    mpz_t dgmp;
+//
+//    mpz_init_set_str (op1, "100082619497", 10);
+//    mpz_init_set_str (op2, "100082619497", 10);
+//    mpz_init_set_str (dgmp, "2305843009213693951", 10);
+//
+//    mpz_init(rop);
+//    mpz_init(resultgmp);
+//
+//    mpz_mul (rop, op1, op2);
+//    mpz_mod (resultgmp, rop, dgmp);
+//
+//
+//    cout << "result of a*b is : " << resultgmp << endl;
+//
+//
+//
+//    unsigned long x = 2147483647;
+//    unsigned long y = 2147483647;
+//
+//    long resLong = x*y;
+//
+//    cout<<"mult64Long : "<<resLong<<endl;
+//
+//    //_mm_extract_epi64(left,0);
+//    //cout<< "left is " <<_mm_extract_epi64(left,0) <<endl;
+//    cout<< "res1 is " <<((unsigned long*)&res1)[0] << " , "<<((unsigned long*)&res1)[1];
+//    cout<< "result is " <<((unsigned long*)&result)[0] << " , "<<((unsigned long*)&result)[1];
+//    cout<< "kar is " <<((unsigned long*)&kar)[0] << " , "<<((unsigned long*)&kar)[1];
+//
+//    return 0;
 
 //    //generate a pseudo random generator to generate the keys
 //    PrgFromOpenSSLAES prg(100*1000000);
