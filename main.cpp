@@ -146,7 +146,7 @@ void multkarm(__m128i *c1, __m128i *c0, __m128i b,
 
 int main(int argc, char* argv[])
 {
-
+//
 //    int elem = 1000;
 //
 //    __m128i left =  _mm_set_epi32(0,0, 7, 7);
@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
 //
 //    cout<<"multUlong result : "<<(unsigned long)res2Ulong<<","<<(unsigned long)resUlong<<endl;
 //
-//    unsigned long mer = mersenneAdd(c, d);
+//    unsigned long mer = mersenne(c, d);
 //
 //    cout<<"Mersenne result is : "<<mer<<endl;
 //

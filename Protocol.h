@@ -2317,7 +2317,7 @@ void Protocol<FieldType>::verificationPhase() {
             //call the verification sub protocol
             answer = verificationOfBatchedTriples(x.data(), y.data(), z.data(),
                                                   randomABShares.data()+numOfMultGates*i, randomABShares.data() + numOfMultGates*iterations + numOfMultGates*i,
-                                                  c.data() + numOfMultGates*i,git 
+                                                  c.data() + numOfMultGates*i,
                                                   randomElements.data() + numOfRandomelements*i, numOfMultGates);
             if (flag_print) {
                 cout << "answer is : " << answer << " for iteration : " << i << endl;
