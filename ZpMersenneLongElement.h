@@ -5,6 +5,8 @@
 #ifndef MPCHONESTMAJORITY_ZPMERSENNELONGELEMENT_H
 #define MPCHONESTMAJORITY_ZPMERSENNELONGELEMENT_H
 
+#include <iostream>
+
 using namespace std;
 
 static const unsigned long p = 2305843009213693951;
@@ -30,7 +32,7 @@ public:
     ZpMersenneLongElement operator/(const ZpMersenneLongElement& f2);
     ZpMersenneLongElement operator*(const ZpMersenneLongElement& f2);
 
-    inline ZpMersenneLongElement& operator+=(const ZpMersenneLongElement& f2){ elem = (f2.elem + elem) %p; return *this;};
+    ZpMersenneLongElement& operator+=(const ZpMersenneLongElement& f2);
     ZpMersenneLongElement& operator*=(const ZpMersenneLongElement& f2);
 
 
@@ -41,7 +43,7 @@ public:
 
 };
 
-//inline ::ostream& operator<<(::ostream& s, const ZpMersenneLongElement& a){ return s << a.elem; };
+inline ::ostream& operator<<(::ostream& s, const ZpMersenneLongElement& a){ return s << a.elem; };
 
 
 
