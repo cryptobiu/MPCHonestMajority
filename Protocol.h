@@ -1108,15 +1108,26 @@ void Protocol<FieldType>::generateRandomSharesPRSS(int numOfRnadoms, vector<Fiel
         cout << "in PRSS gen" << endl;
     }
 
+    int fieldSizeBits = field->getElementSizeInBits();
+
     for(int i=0; i<numOfRnadoms; i++){
 
         randomElementsToFill[i] = *field->GetZero();
 
         for(int j=0; j<prssPrgs.size();j++){
 
-            //NOTE: check if getRandom32 is enough
-            //randomElementsToFill[i] +=field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
-            randomElementsToFill[i] = randomElementsToFill[i] + field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
+            if(fieldSizeBits<-32) {
+                //NOTE: check if getRandom32 is enough
+                //randomElementsToFill[i] +=field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
+                randomElementsToFill[i] =
+                        randomElementsToFill[i] + field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
+            }
+            else{
+                //NOTE: check if getRandom32 is enough
+                //randomElementsToFill[i] +=field->GetElement(prssPrgs[j].getRandom32()) * prssSubsetElement[j];
+                randomElementsToFill[i] =
+                        randomElementsToFill[i] + field->GetElement(((unsigned long)prssPrgs[j].getRandom64())>>(64 - fieldSizeBits) ) * prssSubsetElement[j];
+            }
         }
 
     }
@@ -2448,6 +2459,7 @@ void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, ve
 
 
     int fieldSize = field->getElementSizeInBytes();
+    int fieldSizeBits = field->getElementSizeInBits();
     bool isLongRandoms;
     int size;
     if(fieldSize>4){
@@ -2472,7 +2484,7 @@ void Protocol<FieldType>::generatePseudoRandomElements(vector<byte> & aesKey, ve
     for(int i=0; i<numOfRandomElements; i++){
 
       if(isLongRandoms)
-          randomElementsToFill[i] = field->GetElement(prg.getRandom64()<<(64 - fieldSize*8));
+          randomElementsToFill[i] = field->GetElement(((unsigned long)prg.getRandom64())>>(64 - fieldSizeBits));
       else
           randomElementsToFill[i] = field->GetElement(prg.getRandom32());
     }
@@ -2694,7 +2706,7 @@ void Protocol<FieldType>::roundFunctionSync(vector<vector<byte>> &sendBufs, vect
     }
 
 
-    recBufs[m_partyId-1] = sendBufs[m_partyId-1];
+    recBufs[m_partyId-1] = move(sendBufs[m_partyId-1]);
     //recieve the data using threads
     vector<thread> threads(numThreads);
     for (int t=0; t<numThreads; t++) {

@@ -5,8 +5,6 @@
 #ifndef SECRET_SHARING_TEMPLATEFIELD_H
 #define SECRET_SHARING_TEMPLATEFIELD_H
 
-
-#include "AES_PRG.h"
 #include <stdint.h>
 #include <bitset>
 #include <sstream>
@@ -14,6 +12,7 @@
 #include <NTL/GF2X.h>
 #include <NTL/ZZ_p.h>
 #include<NTL/GF2XFactoring.h>
+#include "../../include/primitives/Prg.hpp"
 
 
 
@@ -21,8 +20,10 @@ template <class FieldType>
 class TemplateField {
 private:
 
+    PrgFromOpenSSLAES prg;
     long fieldParam;
     int elementSizeInBytes;
+    int elementSizeInBits;
     FieldType* m_ZERO;
     FieldType* m_ONE;
 public:
@@ -50,6 +51,7 @@ public:
     FieldType* GetOne();
 
     int getElementSizeInBytes(){ return elementSizeInBytes;}
+    int getElementSizeInBits(){ return elementSizeInBits;}
     /*
      * The i-th field element. The ordering is arbitrary, *except* that
      * the 0-th field element must be the neutral w.r.t. addition, and the
@@ -92,8 +94,12 @@ FieldType TemplateField<FieldType>::stringToElement(const string &str) {
  */
 template <class FieldType>
 FieldType TemplateField<FieldType>::Random() {
-    PRG & prg = PRG::instance();
-    long b = prg.getRandom();
+    unsigned long b;
+    if(elementSizeInBytes<=4)
+        b = prg.getRandom32();
+    else{
+        b = prg.getRandom64()>>(64-elementSizeInBits);
+    }
 
     return GetElement(b);
 }

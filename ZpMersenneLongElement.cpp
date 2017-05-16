@@ -24,7 +24,17 @@ ZpMersenneLongElement& ZpMersenneLongElement::operator=(const ZpMersenneLongElem
 
 ZpMersenneLongElement::ZpMersenneLongElement(unsigned long elem) {
 
-    this->elem = elem %p;
+    this->elem = elem;
+    if(this->elem>=p){
+
+        this->elem = (this->elem & p) + (this->elem>>61);
+
+        if(this->elem >= p)
+            this->elem-= p;
+
+    }
+
+
 
 
 

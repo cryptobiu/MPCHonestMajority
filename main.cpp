@@ -502,8 +502,10 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    int times = 1;
-    string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + ".csv";
+    int times = 5;
+
+    //string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + ".csv";
+    string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + argv[6] + argv[7] + argv[8] + argv[9] + ".csv";
     ProtocolTimer p(times, outputTimerFileName);
 
     string fieldType(argv[6]);

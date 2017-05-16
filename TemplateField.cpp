@@ -15,8 +15,12 @@ TemplateField<ZZ_p>::TemplateField(long fieldParam) {
 
     this->fieldParam = fieldParam;
     this->elementSizeInBytes = NumBytes(fieldParam);//round up to the next byte
+    this->elementSizeInBits = this->elementSizeInBytes*8;
 
     ZZ_p::init(ZZ(fieldParam));
+
+    auto randomKey = prg.generateKey(128);
+    prg.setKey(randomKey);
 
     m_ZERO = new ZZ_p(0);
     m_ONE = new ZZ_p(1);
@@ -27,7 +31,10 @@ TemplateField<ZpMersenneIntElement>::TemplateField(long fieldParam) {
 
     this->fieldParam = 2147483647;
     this->elementSizeInBytes = 4;//round up to the next byte
+    this->elementSizeInBits = 31;
 
+    auto randomKey = prg.generateKey(128);
+    prg.setKey(randomKey);
 
     m_ZERO = new ZpMersenneIntElement(0);
     m_ONE = new ZpMersenneIntElement(1);
@@ -37,7 +44,10 @@ template <>
 TemplateField<ZpMersenneLongElement>::TemplateField(long fieldParam) {
 
     this->elementSizeInBytes = 8;//round up to the next byte
+    this->elementSizeInBits = 61;
 
+    auto randomKey = prg.generateKey(128);
+    prg.setKey(randomKey);
 
     m_ZERO = new ZpMersenneLongElement(0);
     m_ONE = new ZpMersenneLongElement(1);
@@ -46,7 +56,10 @@ template <>
 TemplateField<ZpKaratsubaElement>::TemplateField(long fieldParam) {
 
     this->elementSizeInBytes = 5;//round up to the next byte
+    this->elementSizeInBits = 40;
 
+    auto randomKey = prg.generateKey(128);
+    prg.setKey(randomKey);
 
     m_ZERO = new ZpKaratsubaElement(0);
     m_ONE = new ZpKaratsubaElement(1);
@@ -172,8 +185,12 @@ TemplateField<GF2E>::TemplateField(long fieldParam) {
 
     this->fieldParam = fieldParam;
     this->elementSizeInBytes = fieldParam/8;
+    this->elementSizeInBits = elementSizeInBytes*8;
     GF2X irreduciblePolynomial = BuildSparseIrred_GF2X(fieldParam);
     GF2E::init(irreduciblePolynomial);
+
+    auto randomKey = prg.generateKey(128);
+    prg.setKey(randomKey);
 
     m_ZERO = new GF2E(0);
     m_ONE = new GF2E(1);
