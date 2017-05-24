@@ -98,7 +98,7 @@ private:
 public:
     Protocol(int n, int id,TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
              ProtocolTimer* protocolTimer,
-             string genRandomSharesType = "HIM", string multType = "DN", string verifyType = "Single");
+             string genRandomSharesType = "HIM", string multType = "DN", string verifyType = "Single", int groupID = 0);
 
 
     void roundFunctionSync(vector<vector<byte>> &sendBufs, vector<vector<byte>> &recBufs, int round);
@@ -330,7 +330,7 @@ public:
 template <class FieldType>
 Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
                               ProtocolTimer* protocolTimer,
-                              string genRandomSharesType, string multType, string verifyType)
+                              string genRandomSharesType, string multType, string verifyType, int groupID)
 {
 
     this->genRandomSharesType = genRandomSharesType;
@@ -381,7 +381,7 @@ Protocol<FieldType>::Protocol(int n, int id, TemplateField<FieldType> *field, st
 
     MPCCommunication comm;
 
-    parties = comm.setCommunication(io_service, m_partyId-1, N, "Parties.txt");
+    parties = comm.setCommunication(io_service, m_partyId-1, N, "Parties.txt", groupID);
 
     string tmp = "init times";
     //cout<<"before sending any data"<<endl;

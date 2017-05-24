@@ -337,9 +337,9 @@ int main(int argc, char* argv[])
 //    mpz_t resultMen;
 //    mpz_t dMen;
 //
-//    mpz_init_set_str (op1Men, "200", 10);
-//    mpz_init_set_str (op2Men, "2147483642", 10);
-//    mpz_init_set_str (dMen, "2147483647", 10);
+//    mpz_init_set_str (op1Men, "23058430092136939", 10);
+//    mpz_init_set_str (op2Men, "23058430092136939", 10);
+//    mpz_init_set_str (dMen, "2305843009213693951", 10);
 //
 //    mpz_init(ropMen);
 //    mpz_init(resultMen);
@@ -377,7 +377,7 @@ int main(int argc, char* argv[])
 //
 //    cout << "time in micro for mersenne gmp : " << duration_avg << endl;
 //
-//    int timesfield = 10000000;
+//    int timesfield = 1000000;
 //    ZZ_p::init(ZZ(2147483647));
 //
 //    //testing the mersenne field
@@ -496,7 +496,7 @@ int main(int argc, char* argv[])
 
     return 0;
 */
-    if(argc != 10)
+    if(argc != 11)
     {
         cout << "wrong number of arguments";
         return 0;
@@ -516,7 +516,7 @@ int main(int argc, char* argv[])
     {
         TemplateField<ZpMersenneIntElement> *field = new TemplateField<ZpMersenneIntElement>(2147483647);
 
-        Protocol<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
+        Protocol<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
             protocol.run(i);
@@ -541,7 +541,7 @@ int main(int argc, char* argv[])
 
         TemplateField<ZpMersenneLongElement> *field = new TemplateField<ZpMersenneLongElement>(0);
 
-        Protocol<ZpMersenneLongElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
+        Protocol<ZpMersenneLongElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
             protocol.run(i);
@@ -633,7 +633,7 @@ int main(int argc, char* argv[])
 
 
         Protocol<ZpKaratsubaElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p,
-                                              argv[7], argv[8], argv[9]);
+                                              argv[7], argv[8], argv[9],atoi(argv[10]));
         auto t1 = high_resolution_clock::now();
         for (int i = 0; i < times; i++) {
             protocol.run(i);
@@ -656,7 +656,7 @@ int main(int argc, char* argv[])
     {
         TemplateField<GF2E> *field = new TemplateField<GF2E>(8);
 
-        Protocol<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
+        Protocol<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
             protocol.run(i);
@@ -677,7 +677,7 @@ int main(int argc, char* argv[])
     {
         TemplateField<ZZ_p> * field = new TemplateField<ZZ_p>(2147483647);
 
-        Protocol<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9]);
+        Protocol<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
 
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
