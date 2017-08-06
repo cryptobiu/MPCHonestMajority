@@ -25,7 +25,8 @@ cout<<"num parties = "<<numParties<<endl;
         ipString = "party_" + to_string(i) + "_ip";
 
         //get partys IPs and ports data
-        ports[i] = stoi(cf.Value("", portString)) + groupID*100;
+        //ports[i] = stoi(cf.Value("", portString)) + groupID*100;
+        ports[i] = stoi(cf.Value("", portString));
         ips[i] = cf.Value("", ipString);
     }
 
