@@ -7,7 +7,7 @@
 #include <smmintrin.h>
 #include <inttypes.h>
 #include <stdio.h>
-#include "bmi2intrin.h"
+#include <x86intrin.h>
 
 
 
