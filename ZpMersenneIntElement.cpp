@@ -24,20 +24,21 @@ using namespace std;
 using namespace NTL;
 
 
-ZpMersenneIntElement& ZpMersenneIntElement::operator=(const ZpMersenneIntElement& other) // copy assignment
+/*ZpMersenneIntElement& ZpMersenneIntElement::operator=(const ZpMersenneIntElement& other) // copy assignment
 {
     if (this != &other) { // self-assignment check expected
         elem = other.elem;
     }
     return *this;
-}
+}*/
 
 
-ZpMersenneIntElement::ZpMersenneIntElement(unsigned int elem) {
+ZpMersenneIntElement::ZpMersenneIntElement(int elem) {
 
+    //this->elem = elem %p;
     /*this->elem = elem %p;
 
-    if(this->elem<0){
+    if(this->elem<0) {
         this->elem = elem + p;
     }*/
 
@@ -79,7 +80,7 @@ ZpMersenneIntElement ZpMersenneIntElement::operator+(const ZpMersenneIntElement&
 
     answer.elem = (elem + f2.elem);
 
-    if(answer.elem>=p)
+    if(answer.elem>p)
         answer.elem-=p;
 
     return answer;
@@ -92,7 +93,7 @@ ZpMersenneIntElement ZpMersenneIntElement::operator*(const ZpMersenneIntElement&
     ZpMersenneIntElement answer;
 
 
-    unsigned long multLong = (unsigned long)elem * (unsigned long) f2.elem;
+    long multLong = (long)elem * (long) f2.elem;
 
     //get the bottom 31 bit
     unsigned int bottom = multLong & p;
@@ -103,7 +104,7 @@ ZpMersenneIntElement ZpMersenneIntElement::operator*(const ZpMersenneIntElement&
     answer.elem = bottom + top;
 
     //maximim the value of 2p-2
-    if(answer.elem>=p)
+    if(answer.elem>p)
         answer.elem-=p;
 
     //answer.elem = ((long)elem * (long) f2.elem) %p;
@@ -128,7 +129,7 @@ ZpMersenneIntElement& ZpMersenneIntElement::operator*=(const ZpMersenneIntElemen
     elem = bottom + top;
 
     //maximim the value of 2p-2
-    if(elem>=p)
+    if(elem>p)
         elem-=p;
 
     return *this;
