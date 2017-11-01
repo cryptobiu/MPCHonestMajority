@@ -379,7 +379,7 @@ ProtocolParty<FieldType>::ProtocolParty(int n, int id, TemplateField<FieldType> 
 
     MPCCommunication comm;
 
-    parties = comm.setCommunication(io_service, m_partyId-1, N, "Parties.txt");
+    parties = comm.setCommunication(io_service, m_partyId, N, "Parties.txt");
 
     string tmp = "init times";
     //cout<<"before sending any data"<<endl;
@@ -785,7 +785,7 @@ void ProtocolParty<FieldType>::inputPhase()
             //get the expected sized from the other parties
             sizes[circuit.getGates()[k].party]++;
 
-            if (circuit.getGates()[k].party+1 == m_partyId) {
+            if (circuit.getGates()[k].party == m_partyId) {
                 auto input = myInputs[index];
                 index++;
                 if (flag_print) {
@@ -955,7 +955,7 @@ void ProtocolParty<FieldType>::setupPRSS() {
 
                 //calc the relevant multiplication for this subset.
                 //the element calculated is: For each party P_a in currSubset calc *=(a-k)/-z where k is not in currSubset
-                prssSubsetElement[i] *= (field->GetElement(m_partyId ) - field->GetElement(j+1) ) /
+                prssSubsetElement[i] *= (field->GetElement(m_partyId + 1) - field->GetElement(j+1) ) /
                         (*field->GetZero() - field->GetElement(j+1));
             }
 
@@ -983,7 +983,7 @@ void ProtocolParty<FieldType>::generateKeysForPRSS() {
 
     //get the number of keys to create for all the subsets for which I am the smallest lexicographical index
 
-    int numOfKeys = firstIndex[m_partyId] - firstIndex[m_partyId - 1];
+    int numOfKeys = firstIndex[m_partyId + 1] - firstIndex[m_partyId];
 
     //cout << "num of keys that I am first is " << numOfKeys << "for party " << m_partyId << endl;
 
@@ -991,10 +991,10 @@ void ProtocolParty<FieldType>::generateKeysForPRSS() {
     {
         recBufsBytes[i].resize((firstIndex[i + 1] - firstIndex[i]) * 16);
     }
-    for(int i=0 ; i < m_partyId - 1; i++){
+    for(int i=0 ; i < m_partyId; i++){
         sendBufsBytes[i].resize(0);
     }
-    for(int i= m_partyId - 1 ; i < N; i++){
+    for(int i= m_partyId; i < N; i++){
         sendBufsBytes[i].resize(numOfKeys*16);
     }
 
@@ -1014,15 +1014,15 @@ void ProtocolParty<FieldType>::generateKeysForPRSS() {
 
         int ctr;
         //fill the send array for each party with the relevant keys
-        for(int i= m_partyId - 1 ; i < N; i++){
+        for(int i= m_partyId; i < N; i++){
 
             ctr = 0;
 
-            for(int j= firstIndex[m_partyId - 1] ; j < firstIndex[m_partyId]; j++){
+            for(int j= firstIndex[m_partyId] ; j < firstIndex[m_partyId + 1]; j++){
 
                 if(allSubsets[j][i] == true)//need to send the key to party i
                 {
-                    memcpy(sendBufsBytes[i].data() + ctr*16, (byte *)&(keys[j - firstIndex[m_partyId - 1]]), 16);
+                    memcpy(sendBufsBytes[i].data() + ctr*16, (byte *)&(keys[j - firstIndex[m_partyId]]), 16);
                     ctr++;
                 }
 
@@ -1032,42 +1032,14 @@ void ProtocolParty<FieldType>::generateKeysForPRSS() {
         }
 
     }
-    /*if(m_partyId==4){
-
-        cout << "before :: the recbuf for party " <<m_partyId << " from party 2 is " << _mm_extract_epi64(( (__m128i *)recBufsBytes[1].data() )[0], 0)<<endl;
-
-        cout<<"before: recbuf size is " << recBufsBytes[1].size()<<endl;
-    }*/
-
 
     roundFunctionSync(sendBufsBytes, recBufsBytes, 20);
 
-    /* if(m_partyId==2){
-         cout <<"PARTY 2:: the size of sendbuf[0] is " << sendBufsBytes[0].size()<<endl;
-         cout <<"the size of sendbuf[1] is " << sendBufsBytes[1].size()<<endl;
-         cout <<"the size of sendbuf[2] is " << sendBufsBytes[2].size()<<endl;
-         cout <<"the size of sendbuf[3] is " << sendBufsBytes[3].size()<<endl;
-
-         cout <<"PARTY 2:: the size of sendbuf[0] is " << firstIndex[0]<<endl;
-         cout <<"the size of firstIndex[1] is " << firstIndex[1]<<endl;
-         cout <<"the size of firstIndex[2] is " << firstIndex[2]<<endl;
-         cout <<"the size of firstIndex[3] is " << firstIndex[3]<<endl;
-         cout <<"the size of firstIndex[4] is " << firstIndex[4]<<endl;
-
-     }
-
-     if(m_partyId==4){
-
-         cout << "after :: the recbuf for party " <<m_partyId << " from party 2 is " << _mm_extract_epi64(( (__m128i *)recBufsBytes[1].data() )[0], 0)<<endl;
-
-         cout<<"after: recbuf size is " << recBufsBytes[1].size()<<endl;
-     }
- */
     //get the keys from the other parties
 
     int ctr = 0;
 
-    for(int i=0; i < m_partyId; i++){
+    for(int i=0; i < m_partyId + 1; i++){
 
         for(int j=0; j<recBufsBytes[i].size()/16; j++){
 
@@ -1757,7 +1729,7 @@ int ProtocolParty<FieldType>::processMultDN(int indexInRandomArray) {
         field->elementToBytes(xyMinusRSharesBytes.data() + (j * fieldByteSize), xyMinusRShares[j]);
     }
 
-    if (m_partyId == 1) {
+    if (m_partyId == 0) {
 
 
 
@@ -1780,7 +1752,7 @@ int ProtocolParty<FieldType>::processMultDN(int indexInRandomArray) {
     }
 
     //reconstruct the shares recieved from the other parties
-    if (m_partyId == 1) {
+    if (m_partyId == 0) {
 
         vector<FieldType> xyMinurAllShares(N);
 
@@ -1812,7 +1784,7 @@ int ProtocolParty<FieldType>::processMultDN(int indexInRandomArray) {
 
 
     //fill the xPlusAAndYPlusB array for all the parties except for party 1 that already have this array filled
-    if (m_partyId != 1) {
+    if (m_partyId != 0) {
 
         for (int i = 0; i < acctualNumOfMultGates; i++) {
 
@@ -1882,7 +1854,7 @@ void ProtocolParty<FieldType>::DNHonestMultiplication(FieldType *a, FieldType *b
         field->elementToBytes(xyMinusRSharesBytes.data() + (j * fieldByteSize), xyMinusRShares[j]);
     }
 
-    if (m_partyId == 1) {
+    if (m_partyId == 0) {
 
 
 
@@ -1905,7 +1877,7 @@ void ProtocolParty<FieldType>::DNHonestMultiplication(FieldType *a, FieldType *b
     }
 
     //reconstruct the shares recieved from the other parties
-    if (m_partyId == 1) {
+    if (m_partyId == 0) {
 
         vector<FieldType> xyMinurAllShares(N), yPlusB(N);
 
@@ -1937,7 +1909,7 @@ void ProtocolParty<FieldType>::DNHonestMultiplication(FieldType *a, FieldType *b
 
 
     //fill the xPlusAAndYPlusB array for all the parties except for party 1 that already have this array filled
-    if (m_partyId != 1) {
+    if (m_partyId != 0) {
 
         for (int i = 0; i < numOfTrupples; i++) {
 
@@ -2161,101 +2133,13 @@ void ProtocolParty<FieldType>::processRandoms()
 template <class FieldType>
 void ProtocolParty<FieldType>::offlineDNForMultiplication(int numOfTriples){
 
-    //int fieldByteSize = field->getElementSizeInBytes();
-    //generate random shares for the multiplication gates. 2 shares for every multiplication gate
-   // randomTSharesOfflineMult.resize(numOfTriples*2);//a, b random shares
-    //cOfflineMult.resize(numOfTriples);//a vector of a*b shares
-
-   // vector<FieldType> abMinusRShares(numOfTriples);//a vector of a*b shares
-    //vector<FieldType> abMinusR(numOfTriples);//a vector of a*b . Note this holds the reconstructed vector and not the shares
-    //vector<byte> abMinusRBytes(numOfTriples * fieldByteSize);
-
-
-    //vector<byte> abMinusRSharesBytes(numOfTriples * fieldByteSize);
-    //vector<vector<byte>> recBufsBytes;
-
-
-    //vector<FieldType> randomTAnd2TShares(numOfTriples*2);//a, b random shares
-
-    //vector<FieldType> x(N);
 
 
     //first generate 2*numOfTriples random shares
     //generateRandomShares(numOfTriples*2,randomTSharesOfflineMult);
     generateRandom2TAndTShares(numOfTriples,randomTAnd2TShares);
 
-    //compute locally [ak][bk]-[rk]2t
-   /* for(int i=0; i<numOfTriples; i++){
 
-        //[a_k]*[b_k] - [r_k]_2t
-        abMinusRShares[i] = randomTSharesOfflineMult[i]*randomTSharesOfflineMult[numOfTriples + i] - randomTAnd2TShares[2*i + 1];
-
-        //convert to bytes
-        field->elementToBytes(abMinusRSharesBytes.data() + (i * fieldByteSize), abMinusRShares[i]);
-    }
-
-
-
-    if(m_partyId==1){
-
-        //just party 1 needs the recbuf
-        recBufsBytes.resize(N);
-
-        for(int i=0; i<N; i++){
-            recBufsBytes[i].resize(numOfTriples*fieldByteSize);
-        }
-
-        //receive the shares from all the other parties
-        roundFunctionSyncForP1(abMinusRSharesBytes, recBufsBytes);
-
-    }
-    else{//since I am not party 0 parties[0]->getID()=0
-
-        //send the shares to p1
-        parties[0]->getChannel()->write(abMinusRSharesBytes.data(), abMinusRSharesBytes.size());
-
-    }
-
-    //reconstruct the shares recieved from the other parties
-    if(m_partyId==1) {
-
-        for (int k = 0; k < numOfTriples; k++) {
-
-            for (int i = 0; i < N; i++) {
-
-                x[i] = field->bytesToElement(recBufsBytes[i].data() + (k * fieldByteSize));
-            }
-
-
-            // reconstruct the shares by P0
-            abMinusR[k] = interpolate(x);
-            //convert to bytes
-            field->elementToBytes(abMinusRBytes.data() + (k * fieldByteSize), abMinusR[k]);
-
-        }
-
-        //send the reconstructed vector to all the other parties
-        sendFromP1(abMinusRBytes);
-    }
-    else{//each party get the ab-r vector from party 1
-
-        parties[0]->getChannel()->read(abMinusRBytes.data(), abMinusRBytes.size());
-    }
-
-    //fill the abMinusR array for all the parties except for party 0 that already have this array filled
-    if(m_partyId!=1){
-
-        for(int i=0; i < numOfTriples; i++) {
-
-            abMinusR[i] = field->bytesToElement(abMinusRBytes.data() + (i*fieldByteSize));
-        }
-    }
-
-    //after all parties have abMinusRBytes filled we are ready to compute the c part of the triples
-    for(int i=0; i<numOfTriples; i++){
-
-        cOfflineMult[i] = randomTAnd2TShares[2*i] + abMinusR[i];
-    }*/
 }
 
 template <class FieldType>
@@ -2644,7 +2528,7 @@ void ProtocolParty<FieldType>::outputPhase()
     for(int i=0; i < N; i++)
     {
         sendBufsBytes[i].resize(sendBufsElements[i].size()*fieldByteSize);
-        recBufBytes[i].resize(sendBufsElements[m_partyId - 1].size()*fieldByteSize);
+        recBufBytes[i].resize(sendBufsElements[m_partyId].size()*fieldByteSize);
         for(int j=0; j<sendBufsElements[i].size();j++) {
             field->elementToBytes(sendBufsBytes[i].data() + (j * fieldByteSize), sendBufsElements[i][j]);
         }
@@ -2659,7 +2543,7 @@ void ProtocolParty<FieldType>::outputPhase()
     if(flag_print) {
         cout << "endnend" << endl;}
     for(int k=M-numOfOutputGates ; k < M; k++) {
-        if(circuit.getGates()[k].gateType == OUTPUT && circuit.getGates()[k].party+1 == m_partyId)
+        if(circuit.getGates()[k].gateType == OUTPUT && circuit.getGates()[k].party == m_partyId)
         {
             for(int i=0; i < N; i++) {
 
@@ -2704,7 +2588,7 @@ void ProtocolParty<FieldType>::roundFunctionSync(vector<vector<byte>> &sendBufs,
     }
 
 
-    recBufs[m_partyId-1] = move(sendBufs[m_partyId-1]);
+    recBufs[m_partyId] = move(sendBufs[m_partyId]);
     //recieve the data using threads
     vector<thread> threads(numThreads);
     for (int t=0; t<numThreads; t++) {
@@ -2729,7 +2613,7 @@ void ProtocolParty<FieldType>::exchangeData(vector<vector<byte>> &sendBufs, vect
     //cout<<"in exchangeData";
     for (int i=first; i < last; i++) {
 
-        if ((m_partyId-1) < parties[i]->getID()) {
+        if ((m_partyId) < parties[i]->getID()) {
 
 
             //send shares to my input bits
@@ -2782,7 +2666,7 @@ void ProtocolParty<FieldType>::roundFunctionSyncBroadcast(vector<byte> &message,
     }
 
 
-    recBufs[m_partyId-1] = message;
+    recBufs[m_partyId] = message;
     //recieve the data using threads
     vector<thread> threads(numThreads);
     for (int t=0; t<numThreads; t++) {
@@ -2807,7 +2691,7 @@ void ProtocolParty<FieldType>::recData(vector<byte> &message, vector<vector<byte
     //cout<<"in exchangeData";
     for (int i=first; i < last; i++) {
 
-        if ((m_partyId-1) < parties[i]->getID()) {
+        if ((m_partyId) < parties[i]->getID()) {
 
 
             //send shares to my input bits
@@ -2858,7 +2742,7 @@ void ProtocolParty<FieldType>::roundFunctionSyncForP1(vector<byte> &myShare, vec
     }
 
 
-    recBufs[m_partyId-1] = myShare;
+    recBufs[m_partyId] = myShare;
     //recieve the data using threads
     vector<thread> threads(numThreads);
     for (int t=0; t<numThreads; t++) {
@@ -2956,7 +2840,7 @@ void ProtocolParty<FieldType>::subset(int size, int left, int index, bitset<MAX_
 
     if(left==0){
         //printSubSet(l);
-        if(l[m_partyId-1]==true) {
+        if(l[m_partyId]==true) {
             counter++;
             allSubsets.push_back(l);
         }

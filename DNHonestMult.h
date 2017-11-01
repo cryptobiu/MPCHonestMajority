@@ -62,7 +62,7 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
         protocol->field->elementToBytes(xyMinusRSharesBytes.data() + (j * fieldByteSize), xyMinusRShares[j]);
     }
 
-    if (protocol->m_partyId == 1) {
+    if (protocol->m_partyId == 0) {
 
         //just party 1 needs the recbuf
         recBufsBytes.resize(protocol->N);
@@ -83,7 +83,7 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
     }
 
     //reconstruct the shares recieved from the other parties
-    if (protocol->m_partyId == 1) {
+    if (protocol->m_partyId == 0) {
 
         vector<FieldType> xyMinurAllShares(protocol->N);
 
@@ -119,7 +119,7 @@ void DNHonestMult<FieldType>::mult(FieldType *a, FieldType *b, vector<FieldType>
 
 
     //fill the xPlusAAndYPlusB array for all the parties except for party 1 that already have this array filled
-    if (protocol->m_partyId != 1) {
+    if (protocol->m_partyId != 0) {
 
         for (int i = 0; i < numOfTrupples; i++) {
 
