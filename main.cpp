@@ -146,201 +146,83 @@ void multkarm(__m128i *c1, __m128i *c0, __m128i b,
 int main(int argc, char* argv[])
 {
 
-    if(argc != 11)
+    CmdParser parser;
+    auto parameters = parser.parseArguments("", argc, argv);
+    int times = stoi(parameters["internalIterationsNumber"]);
+    string fieldType(parameters["fieldType"]);
+
+    if(fieldType.compare("ZpMersenne") == 0)
     {
-        cout << "wrong number of arguments";
-        return 0;
-    }
 
-    int times = 5;
-
-    //string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + ".csv";
-    string outputTimerFileName = string(argv[5]) + "Times" + string(argv[1]) + argv[6] + argv[7] + argv[8] + argv[9] + ".csv";
-    ProtocolTimer p(times, outputTimerFileName);
-
-    string fieldType(argv[6]);
-
-
-
-    if(fieldType.compare("ZpMensenne") == 0)
-    {
-        TemplateField<ZpMersenneIntElement> *field = new TemplateField<ZpMersenneIntElement>(2147483647);
-
-        ProtocolParty<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<ZpMersenneIntElement> protocol(argc, argv);
         auto t1 = high_resolution_clock::now();
-        for(int i=0; i<times; i++) {
-            protocol.run(i);
-        }
+        protocol.run();
         auto t2 = high_resolution_clock::now();
 
         auto duration = duration_cast<milliseconds>(t2-t1).count();
         cout << "time in milliseconds for " << times << " runs: " << duration << endl;
 
-        delete field;
-
-        p.writeToFile();
 
         cout << "end main" << '\n';
 
     }
-    else if(fieldType.compare("ZpMensenne61") == 0)
+    else if(fieldType.compare("ZpMersenne61") == 0)
     {
 
-
-
-
-        TemplateField<ZpMersenneLongElement> *field = new TemplateField<ZpMersenneLongElement>(0);
-
-        ProtocolParty<ZpMersenneLongElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<ZpMersenneLongElement> protocol(argc, argv);
         auto t1 = high_resolution_clock::now();
-        for(int i=0; i<times; i++) {
-            protocol.run(i);
-        }
+        protocol.run();
+
         auto t2 = high_resolution_clock::now();
 
         auto duration = duration_cast<milliseconds>(t2-t1).count();
         cout << "time in milliseconds for " << times << " runs: " << duration << endl;
 
-        delete field;
-
-        p.writeToFile();
-
         cout << "end main" << '\n';
-
-
-
-
-
-        //        mpz_t rop;
-//    mpz_t op1;
-//    mpz_t op2;
-//    mpz_t resultgmp;
-//    mpz_t dgmp;
-//
-//    mpz_init_set_str (op1, "2305843009213693948", 10);
-//    mpz_init_set_str (op2, "2305843009213693950", 10);
-//    mpz_init_set_str (dgmp, "2305843009213693951", 10);
-//
-//    mpz_init(rop);
-//    mpz_init(resultgmp);
-//
-//    mpz_mul (rop, op1, op2);
-//    mpz_mod (resultgmp, rop, dgmp);
-//
-//
-//    cout << "result of a*b is : " << resultgmp << endl;
-////
-////    mpz_t d;
-////    mpz_t result;
-////    mpz_t mpz_elem;
-////    mpz_t mpz_me;
-////    mpz_init_set_str (d, "2305843009213693951", 10);
-////    mpz_init(mpz_elem);
-////    mpz_init(mpz_me);
-////
-////    mpz_set_ui(mpz_elem, f2.elem);
-////    mpz_set_ui(mpz_me, elem);
-////
-////    mpz_init(result);
-////
-////    mpz_invert ( result, mpz_elem, d );
-////
-////    mpz_mul (result, result, mpz_me);
-////    mpz_mod (result, result, d);
-//
-//
-//   // unsigned long res = mpz_get_ui(result);
-//
-//    ZpMersenneLongElement aMerLong(2305843009213693948);
-//    ZpMersenneLongElement bMerLong(2305843009213693950);
-//
-//
-//    ZpMersenneLongElement multLong;
-//    ZpMersenneLongElement divLong;
-//    ZpMersenneLongElement subLong;
-//        ZpMersenneLongElement addLong;
-//
-//        multLong = aMerLong*bMerLong;
-//        divLong = aMerLong/bMerLong;
-//        subLong = aMerLong - bMerLong;
-//        addLong = aMerLong + bMerLong;
-//
-//        cout<<"multLong : " << multLong<<endl;
-//        cout<<"divLong : " << divLong<<endl;
-//        cout<<"subLong : " << subLong<<endl;
-//        cout<<"addLong : " << addLong<<endl;
-//
-//
-//
-//
-//
-
 
     }
 
     else if(fieldType.compare("ZpKaratsuba") == 0) {
-        TemplateField<ZpKaratsubaElement> *field = new TemplateField<ZpKaratsubaElement>(0);
 
 
-        ProtocolParty<ZpKaratsubaElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p,
-                                              argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<ZpKaratsubaElement> protocol(argc, argv);
         auto t1 = high_resolution_clock::now();
-        for (int i = 0; i < times; i++) {
-            protocol.run(i);
-        }
+        protocol.run();
         auto t2 = high_resolution_clock::now();
 
         auto duration = duration_cast<milliseconds>(t2 - t1).count();
         cout << "time in milliseconds for " << times << " runs: " << duration << endl;
 
-        delete field;
-
-        p.writeToFile();
 
         cout << "end main" << '\n';
     }
 
 
 
-    else if(fieldType.compare("GF2m") == 0)
-    {
-        TemplateField<GF2E> *field = new TemplateField<GF2E>(8);
+    else if(fieldType.compare("GF2m") == 0){
 
-        ProtocolParty<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<GF2E> protocol(argc, argv);
         auto t1 = high_resolution_clock::now();
-        for(int i=0; i<times; i++) {
-            protocol.run(i);
-        }
+        protocol.run();
         auto t2 = high_resolution_clock::now();
 
         auto duration = duration_cast<milliseconds>(t2-t1).count();
         cout << "time in milliseconds for " << times << " runs: " << duration << endl;
-
-        delete field;
-
-        p.writeToFile();
 
         cout << "end main" << '\n';
     }
 
     else if(fieldType.compare("Zp") == 0)
     {
-        TemplateField<ZZ_p> * field = new TemplateField<ZZ_p>(2147483647);
 
-        ProtocolParty<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<ZZ_p> protocol(argc, argv);
 
         auto t1 = high_resolution_clock::now();
-        for(int i=0; i<times; i++) {
-            protocol.run(i);
-        }
+        protocol.run();
         auto t2 = high_resolution_clock::now();
 
         auto duration = duration_cast<milliseconds>(t2-t1).count();
         cout << "time in milliseconds for " << times << " runs: " << duration << endl;
-
-        delete field;
-
-        p.writeToFile();
 
         cout << "end main" << '\n';
 

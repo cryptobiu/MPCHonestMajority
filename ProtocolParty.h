@@ -32,7 +32,7 @@ using namespace std;
 using namespace std::chrono;
 
 template <class FieldType>
-class ProtocolParty{
+class ProtocolParty : public Protocol, HonestMajority, MultiParty{
 
 public:
     int N, M, T, m_partyId;
@@ -77,6 +77,8 @@ private:
 
 
 
+    int times; //Number of times to execute the protocol
+    int iteration; //The current execution number
 
     boost::asio::io_service io_service;
     ArithmeticCircuit circuit;
@@ -94,9 +96,9 @@ private:
     vector<int> myInputs;
 
 public:
-    ProtocolParty(int n, int id,TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
+    ProtocolParty(int argc, char* argv[]);/*int n, int id,TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
              ProtocolTimer* protocolTimer,
-             string genRandomSharesType = "HIM", string multType = "DN", string verifyType = "Single", int groupID = 0);
+             string genRandomSharesType = "HIM", string multType = "DN", string verifyType = "Single", int groupID = 0);*/
 
 
     void roundFunctionSync(vector<vector<byte>> &sendBufs, vector<vector<byte>> &recBufs, int round);
@@ -119,16 +121,40 @@ public:
     vector<PrgFromOpenSSLAES> prssPrgs;
     vector<FieldType> prssSubsetElement;
     int counter = 0;
+
     /**
      * This method runs the protocol:
-     * 1. Initialization Phase
-     * 2. Preparation Phase
-     * 3. Input Phase
-     * 4. Computation Phase
-     * 5. Verification Phase
-     * 6. Output Phase
+     * 1. Preparation Phase
+     * 2. Input Phase
+     * 3. Computation Phase
+     * 4. Verification Phase
+     * 5. Output Phase
      */
-    void run(int iteration);
+    void run() override;
+
+    bool hasOffline() {
+        return true;
+    }
+
+
+    bool hasOnline() override {
+        return true;
+    }
+
+    /**
+     * This method runs the protocol:
+     * Preparation Phase
+     */
+    void runOffline() override;
+
+    /**
+     * This method runs the protocol:
+     * Input Phase
+     * Computation Phase
+     * Verification Phase
+     * Output Phase
+     */
+    void runOnline() override;
 
     /**
      * This method reads text file and inits a vector of Inputs according to the file.
@@ -326,15 +352,16 @@ public:
 
 
 template <class FieldType>
-ProtocolParty<FieldType>::ProtocolParty(int n, int id, TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
+ProtocolParty<FieldType>::ProtocolParty(int argc, char* argv[]) : Protocol("MPCHonestMajority", argc, argv) {
+    /*int n, int id, TemplateField<FieldType> *field, string inputsFile, string outputFile, string circuitFile,
                               ProtocolTimer* protocolTimer,
-                              string genRandomSharesType, string multType, string verifyType, int groupID)
-{
+                              string genRandomSharesType, string multType, string verifyType, int groupID)*/
 
-    this->genRandomSharesType = genRandomSharesType;
-    this->multType = multType;
-    this->verifyType = verifyType;
+    this->genRandomSharesType = arguments["genRandomSharesType"];
+    this->multType = arguments["multType"];
+    this->verifyType = arguments["verifyType"];
 
+    this->times = stoi(arguments["internalIterationsNumber"]);
     //honestMult = new GRRHonestMult<FieldType>();
 
     if(multType=="GRR"){
@@ -347,23 +374,37 @@ ProtocolParty<FieldType>::ProtocolParty(int n, int id, TemplateField<FieldType> 
             honestMult = new DNHonestMult<FieldType>(0, this);
     }
 
-    this->protocolTimer = protocolTimer;
-    this->field = field;
-    //comm = Communication::getInstance(n, id, address);
-    N = n;
-    T = n/2 - 1;
+    string outputTimerFileName = arguments["circuitFile"] + "Times" + arguments["partyID"] + arguments["fieldType"]
+                                 + arguments["genRandomSharesType"] + arguments["multType"] + arguments["verifyType"] + ".csv";
+    this->protocolTimer = new ProtocolTimer(times, outputTimerFileName);
+
+    string fieldType = arguments["fieldType"];
+    if(fieldType.compare("ZpMersenne") == 0) {
+        field = new TemplateField<FieldType>(2147483647);
+    } else if(fieldType.compare("ZpMersenne61") == 0) {
+        field = new TemplateField<FieldType>(0);
+    } else if(fieldType.compare("ZpKaratsuba") == 0) {
+        field = new TemplateField<FieldType>(0);
+    } else if(fieldType.compare("GF2E") == 0) {
+        field = new TemplateField<FieldType>(8);
+    } else if(fieldType.compare("ZZ_p") == 0) {
+        field = new TemplateField<FieldType>(2147483647);
+    }
+
+    N = stoi(arguments["numParties"]);
+    T = N/2 - 1;
     //T = n/3 - 1;
-    this->inputsFile = inputsFile;
-    this->outputFile = outputFile;
-    if(n%2 > 0)
+    this->inputsFile = arguments["inputsFile"];
+    this->outputFile = arguments["outputsFile"];
+    if(N%2 > 0)
     {
         T++;
     }
 
 
-    m_partyId = id;
+    m_partyId = stoi(arguments["partyID"]);
     s = to_string(m_partyId);
-    circuit.readCircuit(circuitFile.c_str());
+    circuit.readCircuit(arguments["circuitFile"].c_str());
     circuit.reArrangeCircuit();
     M = circuit.getNrOfGates();
     numOfInputGates = circuit.getNrOfInputGates();
@@ -379,13 +420,13 @@ ProtocolParty<FieldType>::ProtocolParty(int n, int id, TemplateField<FieldType> 
 
     MPCCommunication comm;
 
-    parties = comm.setCommunication(io_service, m_partyId, N, "Parties.txt");
+    parties = comm.setCommunication(io_service, m_partyId, N, arguments["partiesFile"]);
 
     string tmp = "init times";
     //cout<<"before sending any data"<<endl;
     byte tmpBytes[20];
     for (int i=0; i<parties.size(); i++){
-        if (parties[i]->getID() < id){
+        if (parties[i]->getID() < m_partyId){
             parties[i]->getChannel()->write(tmp);
             parties[i]->getChannel()->read(tmpBytes, tmp.size());
         } else {
@@ -394,12 +435,8 @@ ProtocolParty<FieldType>::ProtocolParty(int n, int id, TemplateField<FieldType> 
         }
     }
 
-    //cout<<"after sending any data"<<endl;
-
 
     readMyInputs();
-
-    //cout<<"after read my inputs"<<endl;
 
     auto t1 = high_resolution_clock::now();
     initializationPhase(/*matrix_him, matrix_vand, m*/);
@@ -636,12 +673,27 @@ void ProtocolParty<FieldType>::readMyInputs()
 }
 
 template <class FieldType>
-void ProtocolParty<FieldType>::run(int iteration) {
+void ProtocolParty<FieldType>::run() {
+    for (int i=0; i<times; i++){
+        auto t1start = high_resolution_clock::now();
 
+        iteration = i;
+        runOffline();
+        runOnline();
+
+        auto t2end = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2end-t1start).count();
+        protocolTimer->totalTimeArr[iteration] = duration;
+
+        cout << "time in milliseconds for protocol: " << duration << endl;
+    }
+}
+
+template <class FieldType>
+void ProtocolParty<FieldType>::runOffline() {
     shareIndex = numOfInputGates;
     firstIndex.clear();
 
-    auto t1start = high_resolution_clock::now();
     auto t1 = high_resolution_clock::now();
     if(preparationPhase() == false) {
         if(flag_print) {
@@ -663,16 +715,19 @@ void ProtocolParty<FieldType>::run(int iteration) {
 
 
 
+}
 
+template <class FieldType>
+void ProtocolParty<FieldType>::runOnline() {
 
-    t1 = high_resolution_clock::now();
+    auto t1 = high_resolution_clock::now();
 
     inputPhase();
     inputVerification();
 
-    t2 = high_resolution_clock::now();
+    auto t2 = high_resolution_clock::now();
 
-    duration = duration_cast<milliseconds>(t2-t1).count();
+    auto duration = duration_cast<milliseconds>(t2-t1).count();
     protocolTimer->inputPreparationArr[iteration] = duration;
     if(flag_print_timings) {
         cout << "time in milliseconds inputPhase: " << duration << endl;
@@ -681,7 +736,7 @@ void ProtocolParty<FieldType>::run(int iteration) {
     string sss = "";
 
 
-     t1 = high_resolution_clock::now();
+    t1 = high_resolution_clock::now();
 
     computationPhase(m);
 
@@ -720,12 +775,6 @@ void ProtocolParty<FieldType>::run(int iteration) {
     if(flag_print_timings) {
         cout << "time in milliseconds outputPhase: " << duration << endl;
     }
-    auto t2end = high_resolution_clock::now();
-
-    duration = duration_cast<milliseconds>(t2end-t1start).count();
-    protocolTimer->totalTimeArr[iteration] = duration;
-
-    cout << "time in milliseconds for protocol: " << duration << endl;
 
 }
 
@@ -1362,10 +1411,8 @@ void ProtocolParty<FieldType>::initializationPhase()
     alpha.resize(N); // N distinct non-zero field elements
     vector<FieldType> alpha1(N-T);
     vector<FieldType> alpha2(T);
-
     beta[0] = field->GetElement(0); // zero of the field
     matrix_for_interpolate.allocate(1,N, field);
-
 
     matrix_him.allocate(N,N,field);
     matrix_vand.allocate(N,N,field);
@@ -2864,7 +2911,12 @@ void ProtocolParty<FieldType>::subset(int size, int left, int index, bitset<MAX_
 template <class FieldType>
 ProtocolParty<FieldType>::~ProtocolParty()
 {
-    //delete comm;
+    delete field;
+
+    protocolTimer->writeToFile();
+    delete protocolTimer;
+
+    io_service.stop();
 }
 
 
