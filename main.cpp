@@ -1,8 +1,6 @@
 
 #include <stdlib.h>
-#include "Protocol.h"
-#include "ZpMersenneIntElement.h"
-#include "ZpMersenneLongElement.h"
+#include "ProtocolParty.h"
 #include "ZpKaratsubaElement.h"
 #include <smmintrin.h>
 #include <inttypes.h>
@@ -148,354 +146,6 @@ void multkarm(__m128i *c1, __m128i *c0, __m128i b,
 int main(int argc, char* argv[])
 {
 
-//    int elem = 1000;
-//
-//    __m128i left =  _mm_set_epi32(0,0, 7, 7);
-//    __m128i right =  _mm_set_epi32(0,0, 7, 7);
-//    __m128i result = _mm_clmulepi64_si128(left, right, 0);
-//
-//    __m128i res1, res2;
-//   // __m128i kar;
-//
-//
-//    mul128(left,right,&res1, &res2);
-//    //multkarm(&res2,&kar,left,right);
-//
-//
-//
-//    uint64_t a = 100082619497;
-//    uint64_t b = 100082619497;
-//    uint64_t  d;
-//    long long unsigned int c;
-//    d = _mulx_u64(a, b, &c);
-//    cout<<"mult128 : "<<(unsigned long)c<<","<<(unsigned long)d<<endl;
-//
-//    //d = a*b;
-//
-//    cout<<"mult64 : "<<(unsigned long)d<<endl;
-//
-//    unsigned long resUlong;
-//    unsigned long res2Ulong;
-//
-//    multUlong(a,b,&resUlong, &res2Ulong);
-//
-//    cout<<"multUlong result : "<<(unsigned long)res2Ulong<<","<<(unsigned long)resUlong<<endl;
-//
-//    unsigned long mer = mersenneAdd(c, d);
-//
-//    cout<<"Mersenne result is : "<<mer<<endl;
-//
-//
-//
-//    mpz_t rop;
-//    mpz_t op1;
-//    mpz_t op2;
-//    mpz_t resultgmp;
-//    mpz_t dgmp;
-//
-//    mpz_init_set_str (op1, "100082619497", 10);
-//    mpz_init_set_str (op2, "100082619497", 10);
-//    mpz_init_set_str (dgmp, "2305843009213693951", 10);
-//
-//    mpz_init(rop);
-//    mpz_init(resultgmp);
-//
-//    mpz_mul (rop, op1, op2);
-//    mpz_mod (resultgmp, rop, dgmp);
-//
-//
-//    cout << "result of a*b is : " << resultgmp << endl;
-//
-//
-//
-//    unsigned long x = 2147483647;
-//    unsigned long y = 2147483647;
-//
-//    long resLong = x*y;
-//
-//    cout<<"mult64Long : "<<resLong<<endl;
-//
-//    //_mm_extract_epi64(left,0);
-//    //cout<< "left is " <<_mm_extract_epi64(left,0) <<endl;
-//    cout<< "res1 is " <<((unsigned long*)&res1)[0] << " , "<<((unsigned long*)&res1)[1];
-//    cout<< "result is " <<((unsigned long*)&result)[0] << " , "<<((unsigned long*)&result)[1];
-//    //cout<< "kar is " <<((unsigned long*)&kar)[0] << " , "<<((unsigned long*)&kar)[1];
-//
-//
-//    //generate a pseudo random generator to generate the keys
-//    PrgFromOpenSSLAES prg(100*1000000);
-//    auto randomKey = prg.generateKey(128);
-//    prg.setKey(randomKey);
-//
-//
-//    vector<ZpKaratsubaElement> kar(20000000);
-//
-//
-//
-//    for(int i=0; i<20000000; i++){
-//
-//        ZpKaratsubaElement a(prg.getRandom64());
-//        kar[i] = a;
-//    }
-//
-//
-//
-//    auto duration_avg = 0;
-//
-//
-//
-//
-////    mpz_t rop;
-////    mpz_t op1;
-////    mpz_t op2;
-////    mpz_t result;
-////    mpz_t d;
-////
-////    mpz_init_set_str (op1, "181254622435", 10);
-////    mpz_init_set_str (op2, "850793430687", 10);
-////    mpz_init_set_str (d, "1071482619497", 10);
-////
-////    mpz_init(rop);
-////    mpz_init(result);
-////
-////    mpz_mul (rop, op1, op2);
-////    mpz_mod (result, rop, d);
-////
-////    cout << "result of b*a is : " << result << endl;
-////
-////    mpz_mul (rop, op2, op1);
-////    mpz_mod (result, rop, d);
-////
-////
-////    cout << "result of a*b is : " << result << endl;
-////
-////
-////
-////
-////    duration_avg = 0;
-////    auto t1 = high_resolution_clock::now();
-////
-////    for(int i=0; i<10000000; i++) {
-////
-////
-////
-////            mpz_mul (rop, op1, op2);
-////            mpz_mod (result, rop, d);
-////
-////
-////
-////    }
-////    auto t2 = high_resolution_clock::now();
-////
-////    auto duration = duration_cast<microseconds>(t2 - t1).count();
-////
-////    duration_avg += duration;
-////    //duration_avg = duration_avg;
-////
-////
-////    cout << "time in milliseconds : " << duration_avg << endl;
-//
-//    duration_avg = 0;
-//    ZpKaratsubaElement aKar(181254622435);
-//    ZpKaratsubaElement bKar(850793430687);
-//
-//    auto ab = aKar*bKar;
-//    auto ba = bKar*aKar;
-//
-//    cout<<"a*b = " <<ab.elem<<endl;
-//    cout<<"b*a = " <<ba.elem<<endl;
-//
-//
-//    ZpKaratsubaElement cKar;
-//    ZpKaratsubaElement small(500);
-//
-//
-//    //ZpMersenneIntElement p(1071482619497);
-//
-//    auto t1 = high_resolution_clock::now();
-//    for(int i=0; i<10000000; i++) {
-//
-//        //c = a*b;
-//            cKar = kar[i]*kar[2*i];
-//            //c = small*small;//kar[2*i];
-//
-//    }
-//     auto t2 = high_resolution_clock::now();
-//
-//     auto duration = duration_cast<microseconds>(t2 - t1).count();
-//
-//    duration_avg += duration;
-//    //duration_avg = duration_avg;
-//
-//
-//    cout << "time in milliseconds : " << duration_avg << endl;
-//
-//
-//    mpz_t ropMen;
-//    mpz_t op1Men;
-//    mpz_t op2Men;
-//    mpz_t resultMen;
-//    mpz_t dMen;
-//
-//    mpz_init_set_str (op1Men, "23058430092136939", 10);
-//    mpz_init_set_str (op2Men, "23058430092136939", 10);
-//    mpz_init_set_str (dMen, "2305843009213693951", 10);
-//
-//    mpz_init(ropMen);
-//    mpz_init(resultMen);
-//
-//    mpz_mul (ropMen, op1Men, op2Men);
-//    mpz_mod (resultMen, ropMen, dMen);
-//
-//    cout << "result of b*a is : " << resultMen << endl;
-//
-//    mpz_mul (ropMen, op2Men, op1Men);
-//    mpz_mod (resultMen, ropMen, dMen);
-//
-//
-//
-//
-//
-//    duration_avg = 0;
-//    t1 = high_resolution_clock::now();
-//
-//    for(int i=0; i<10000000; i++) {
-//
-//
-//
-//        mpz_mul (ropMen, op1Men, op2Men);
-//        mpz_mod (resultMen, ropMen, dMen);
-//
-//
-//
-//    }
-//    t2 = high_resolution_clock::now();
-//
-//    duration = duration_cast<microseconds>(t2 - t1).count();
-//
-//    duration_avg += duration;
-//
-//    cout << "time in micro for mersenne gmp : " << duration_avg << endl;
-//
-//    int timesfield = 1000000;
-//    ZZ_p::init(ZZ(2147483647));
-//
-//    //testing the mersenne field
-//
-//    ZpMersenneLongElement aMerLong(100082619497);
-//    ZpMersenneLongElement bMerLong(100082619497);
-//
-//    ZpMersenneLongElement cMerLong(2147483647);
-//
-//    c = a+b;
-//
-//    ZpMersenneLongElement multLong;
-//    ZpMersenneLongElement divLong(2147483647);
-//
-//
-//
-//    t1 = high_resolution_clock::now();
-//    for(int i=0; i<timesfield; i++){
-//        multLong = aMerLong*bMerLong;
-//    }
-//    t2 = high_resolution_clock::now();
-//
-//    cout<<"result for mersenne long implemented field is:"<<multLong<<endl;
-//
-//    duration = duration_cast<microseconds>(t2-t1).count();
-//    cout << "time in milliseconds for Mersenne long" << timesfield<< " mults: " << duration << endl;
-//
-//
-//
-//    //testing the mersenne field
-//
-//    ZpMersenneIntElement aMer(2147483646);
-//    ZpMersenneIntElement bMer(2147483643);
-//
-//    ZpMersenneIntElement cMer(2147483647);
-//
-//    c = a+b;
-//
-//    ZpMersenneIntElement mult;
-//    ZpMersenneIntElement div(2147483647);
-//
-//
-//
-//    t1 = high_resolution_clock::now();
-//    for(int i=0; i<timesfield; i++){
-//        mult = aMer*bMer;
-//    }
-//    t2 = high_resolution_clock::now();
-//
-//    duration = duration_cast<microseconds>(t2-t1).count();
-//    cout << "time in milliseconds for Mersenne int " << timesfield<< " mults: " << duration << endl;
-//
-//
-//
-//
-//
-//
-//    return 0;
-
-/*
-    t1 = high_resolution_clock::now();
-    for(int i=0; i<timesfield; i++){
-        div = a/b;
-    }
-    t2 = high_resolution_clock::now();
-
-    duration = duration_cast<milliseconds>(t2-t1).count();
-    cout << "time in milliseconds for " << timesfield << " divs: " << duration << endl;
-
-
-    cout<<"a + b = " << c.elem <<endl;
-    cout<<"a * b = " << mult.elem<<endl;
-    cout<<"a / b = " << div.elem<<endl;
-    cout<<"a - b = " << a-b<<endl;
-
-
-    cout<< "-1 % 2147483647 is " << (-1 % 2147483647) << endl;
-
-
-    ZZ_p::init(ZZ(2147483647));
-
-    ZZ_p x(2147483640);
-    ZZ_p y(2147483641);
-    ZZ_p divZ(5);
-    ZZ_p multZ(5);
-
-
-    t1 = high_resolution_clock::now();
-    for(int i=0; i<timesfield; i++){
-        multZ = x*y;
-    }
-    t2 = high_resolution_clock::now();
-
-    duration = duration_cast<milliseconds>(t2-t1).count();
-    cout << "time in milliseconds for " << timesfield<< " mults: " << duration << endl;
-
-
-
-
-    t1 = high_resolution_clock::now();
-    for(int i=0; i<timesfield; i++){
-        divZ = x/y;
-    }
-    t2 = high_resolution_clock::now();
-
-    duration = duration_cast<milliseconds>(t2-t1).count();
-    cout << "time in milliseconds for " << timesfield << " divs: " << duration << endl;
-
-
-
-    cout<<"zzp : a / b = " << to_uint(rep(divZ))<<endl;
-
-    cout<<"zzp: a * b = " << (x*y) <<endl;
-
-    cout<<"zzp: a - b = " << (x-y) <<endl;
-
-    return 0;
-*/
     if(argc != 11)
     {
         cout << "wrong number of arguments";
@@ -516,7 +166,7 @@ int main(int argc, char* argv[])
     {
         TemplateField<ZpMersenneIntElement> *field = new TemplateField<ZpMersenneIntElement>(2147483647);
 
-        Protocol<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<ZpMersenneIntElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
             protocol.run(i);
@@ -541,7 +191,7 @@ int main(int argc, char* argv[])
 
         TemplateField<ZpMersenneLongElement> *field = new TemplateField<ZpMersenneLongElement>(0);
 
-        Protocol<ZpMersenneLongElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<ZpMersenneLongElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
             protocol.run(i);
@@ -632,7 +282,7 @@ int main(int argc, char* argv[])
         TemplateField<ZpKaratsubaElement> *field = new TemplateField<ZpKaratsubaElement>(0);
 
 
-        Protocol<ZpKaratsubaElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p,
+        ProtocolParty<ZpKaratsubaElement> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p,
                                               argv[7], argv[8], argv[9],atoi(argv[10]));
         auto t1 = high_resolution_clock::now();
         for (int i = 0; i < times; i++) {
@@ -656,7 +306,7 @@ int main(int argc, char* argv[])
     {
         TemplateField<GF2E> *field = new TemplateField<GF2E>(8);
 
-        Protocol<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<GF2E> protocol(atoi(argv[2]), atoi(argv[1]), field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {
             protocol.run(i);
@@ -677,7 +327,7 @@ int main(int argc, char* argv[])
     {
         TemplateField<ZZ_p> * field = new TemplateField<ZZ_p>(2147483647);
 
-        Protocol<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
+        ProtocolParty<ZZ_p> protocol(atoi(argv[2]), atoi(argv[1]),field, argv[3], argv[4], argv[5], &p, argv[7], argv[8], argv[9],atoi(argv[10]));
 
         auto t1 = high_resolution_clock::now();
         for(int i=0; i<times; i++) {

@@ -14,11 +14,11 @@ private:
     vector<FieldType> randomTAnd2TShares;
     int offset = 0;
     int numOfRandoms;
-    Protocol<FieldType> *protocol;
+    ProtocolParty<FieldType> *protocol;
 
 public:
 
-    DNHonestMult(int numOfRandoms, Protocol<FieldType> *protocol): numOfRandoms(numOfRandoms), protocol(protocol){};
+    DNHonestMult(int numOfRandoms, ProtocolParty<FieldType> *protocol): numOfRandoms(numOfRandoms), protocol(protocol){};
 
     void invokeOffline();
 

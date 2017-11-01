@@ -13,10 +13,10 @@ template <typename FieldType>
 class GRRHonestMult : public HonestMultAbstract<FieldType> {
 
 private:
-    Protocol<FieldType> *protocol;
+    ProtocolParty<FieldType> *protocol;
 public:
 
-    GRRHonestMult(Protocol<FieldType> *protocol) : protocol(protocol) {};
+    GRRHonestMult(ProtocolParty<FieldType> *protocol) : protocol(protocol) {};
 
     void invokeOffline() {};
 

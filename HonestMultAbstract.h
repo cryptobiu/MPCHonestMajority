@@ -6,10 +6,10 @@
 #define MPCHONESTMAJORITY_HONESTMULTABSTRACT_H
 
 #include <vector>
-#include "TemplateField.h"
+#include <libscapi/include/primitives/Mersenne.hpp>
 
 template <class FieldType>
-class Protocol;
+class ProtocolParty;
 
 template <typename FieldType>
 class HonestMultAbstract {

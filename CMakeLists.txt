@@ -11,10 +11,9 @@ find_package(Boost COMPONENTS system thread REQUIRED)
 INCLUDE_DIRECTORIES($ENV{HOME}/ntl-9.10.0/include $ENV{HOME} ${BOOST_INCLUDEDIR}
         $ENV{HOME}/libscapi/lib/OTExtensionBristol $ENV{HOME}/libscapi/lib/)
 
-set(SOURCE_FILES AES_PRG.cpp HIM.cpp main.cpp VDM.cpp MPCCommunication.cpp MPCCommunication.h
-        TGate.h ArithmeticCircuit.cpp Protocol.cpp Protocol.h TemplateField.h TemplateField.cpp ProtocolTimer.cpp ProtocolTimer.h
-        ZpMersenneIntElement.cpp ZpMersenneIntElement.h HonestMultAbstract.h GRRHonestMult.h DNHonestMult.h
-        ZpMersenneLongElement.cpp ZpMersenneLongElement.h ZpKaratsubaElement.cpp ZpKaratsubaElement.h)
+set(SOURCE_FILES main.cpp ProtocolParty.cpp ProtocolParty.h TemplateField.cpp ProtocolTimer.cpp ProtocolTimer.h
+        HonestMultAbstract.h GRRHonestMult.h DNHonestMult.h
+        ZpKaratsubaElement.cpp ZpKaratsubaElement.h)
 
 
 link_directories(/usr/ssl/lib/ $ENV{HOME}/libscapi/install/lib ${BOOST_LIBRARYDIR})
@@ -23,7 +22,7 @@ link_directories(/usr/ssl/lib/ $ENV{HOME}/libscapi/install/lib ${BOOST_LIBRARYDI
 add_executable(MPCHonestMajority ${SOURCE_FILES})
 
 TARGET_LINK_LIBRARIES(MPCHonestMajority $ENV{HOME}/ntl-9.10.0/src/ntl.a
-        $ENV{HOME}/libscapi/scapi.a gmp gmpxx
+        $ENV{HOME}/libscapi/libscapi.a gmp gmpxx
         OTExtensionBristol
         $ENV{HOME}/libscapi/install/lib/libsimpleot.a
         boost_system boost_thread pthread crypto dl ssl z )
