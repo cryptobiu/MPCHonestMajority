@@ -16,8 +16,9 @@
 #include <libscapi/include/comm/MPCCommunication.hpp>
 #include <libscapi/include/infra/Common.hpp>
 #include <libscapi/include/primitives/Prg.hpp>
-#include <libscapi/include/CryptoInfra/Protocol.hpp>
-#include <libscapi/include/CryptoInfra/SecurityLevel.hpp>
+#include <libscapi/include/cryptoInfra/Protocol.hpp>
+#include <libscapi/include/cryptoInfra/SecurityLevel.hpp>
+#include <libscapi/include/infra/Measurement.hpp>
 #include<emmintrin.h>
 #include <thread>
 
@@ -54,7 +55,8 @@ private:
 
     string s;
     int numOfInputGates, numOfOutputGates;
-    string inputsFile, outputFile, ADDRESS;
+    string inputsFile, outputFile;
+    Measurement timer;
     vector<FieldType> beta;
     HIM<FieldType> matrix_for_interpolate;
     HIM<FieldType> matrix_for_t;
@@ -392,6 +394,7 @@ ProtocolParty<FieldType>::ProtocolParty(int argc, char* argv[]) : Protocol("MPCH
     }
 
     N = stoi(arguments["numParties"]);
+
     T = N/2 - 1;
     //T = n/3 - 1;
     this->inputsFile = arguments["inputsFile"];
@@ -413,7 +416,8 @@ ProtocolParty<FieldType>::ProtocolParty(int argc, char* argv[]) : Protocol("MPCH
     shareIndex = numOfInputGates;
     counter = 0;
 
-
+    vector<string> subTaskNames{"Offline", "preparationPhase", "Online", "inputPhase", "ComputePhase", "VerificationPhase", "outputPhase"};
+    timer = Measurement("SemiHonestYao", m_partyId, N, times, subTaskNames);
     //comm->ConnectionToServer(s);
 
     //boost::asio::io_service io_service;
@@ -674,12 +678,16 @@ void ProtocolParty<FieldType>::readMyInputs()
 
 template <class FieldType>
 void ProtocolParty<FieldType>::run() {
-    for (int i=0; i<times; i++){
+    for (iteration = 0; iteration<times; iteration++){
         auto t1start = high_resolution_clock::now();
 
-        iteration = i;
+        timer.startSubTask();
         runOffline();
+        timer.endSubTask(0, iteration);
+
+        timer.startSubTask();
         runOnline();
+        timer.endSubTask(2, iteration);
 
         auto t2end = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2end-t1start).count();
@@ -695,6 +703,7 @@ void ProtocolParty<FieldType>::runOffline() {
     firstIndex.clear();
 
     auto t1 = high_resolution_clock::now();
+    timer.startSubTask();
     if(preparationPhase() == false) {
         if(flag_print) {
             cout << "cheating!!!" << '\n';}
@@ -704,7 +713,7 @@ void ProtocolParty<FieldType>::runOffline() {
         if(flag_print) {
             cout << "no cheating!!!" << '\n' << "finish Preparation Phase" << '\n';}
     }
-
+    timer.endSubTask(1, iteration);
     auto t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<milliseconds>(t2-t1).count();
@@ -721,10 +730,10 @@ template <class FieldType>
 void ProtocolParty<FieldType>::runOnline() {
 
     auto t1 = high_resolution_clock::now();
-
+    timer.startSubTask();
     inputPhase();
     inputVerification();
-
+    timer.endSubTask(3, iteration);
     auto t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<milliseconds>(t2-t1).count();
@@ -737,9 +746,9 @@ void ProtocolParty<FieldType>::runOnline() {
 
 
     t1 = high_resolution_clock::now();
-
+    timer.startSubTask();
     computationPhase(m);
-
+    timer.endSubTask(4, iteration);
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<milliseconds>(t2-t1).count();
@@ -752,8 +761,9 @@ void ProtocolParty<FieldType>::runOnline() {
     }
 
     t1 = high_resolution_clock::now();
-
+    timer.startSubTask();
     verificationPhase();
+    timer.endSubTask(5, iteration);
 
     t2 = high_resolution_clock::now();
     duration = duration_cast<milliseconds>(t2-t1).count();
@@ -764,8 +774,9 @@ void ProtocolParty<FieldType>::runOnline() {
     }
 
     t1 = high_resolution_clock::now();
-
+    timer.startSubTask();
     outputPhase();
+    timer.endSubTask(6, iteration);
 
     t2 = high_resolution_clock::now();
 

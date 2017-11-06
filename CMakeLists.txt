@@ -23,6 +23,7 @@ add_executable(MPCHonestMajority ${SOURCE_FILES})
 
 TARGET_LINK_LIBRARIES(MPCHonestMajority $ENV{HOME}/ntl-9.10.0/src/ntl.a
         $ENV{HOME}/libscapi/libscapi.a gmp gmpxx
+        $ENV{HOME}/libscapi/install/lib/libjsoncpp.a
         OTExtensionBristol
         $ENV{HOME}/libscapi/install/lib/libsimpleot.a
-        boost_system boost_thread pthread crypto dl ssl z )
+        boost_system boost_thread pthread crypto dl ssl z stdc++fs)
