@@ -417,7 +417,7 @@ ProtocolParty<FieldType>::ProtocolParty(int argc, char* argv[]) : Protocol("MPCH
     counter = 0;
 
     vector<string> subTaskNames{"Offline", "preparationPhase", "Online", "inputPhase", "ComputePhase", "VerificationPhase", "outputPhase"};
-    timer = Measurement("SemiHonestYao", m_partyId, N, times, subTaskNames);
+    timer = Measurement("MPCHonestMajority", m_partyId, N, times, subTaskNames);
     //comm->ConnectionToServer(s);
 
     //boost::asio::io_service io_service;
