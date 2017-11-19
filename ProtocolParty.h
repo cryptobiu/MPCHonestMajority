@@ -676,11 +676,11 @@ void ProtocolParty<FieldType>::run() {
     for (iteration = 0; iteration<times; iteration++){
         auto t1start = high_resolution_clock::now();
 
-        timer->startSubTask();
+        timer->startSubTask(0, iteration);
         runOffline();
         timer->endSubTask(0, iteration);
 
-        timer->startSubTask();
+        timer->startSubTask(2, iteration);
         runOnline();
         timer->endSubTask(2, iteration);
 
@@ -698,7 +698,7 @@ void ProtocolParty<FieldType>::runOffline() {
     firstIndex.clear();
 
     auto t1 = high_resolution_clock::now();
-    timer->startSubTask();
+    timer->startSubTask(1, iteration);
     if(preparationPhase() == false) {
         if(flag_print) {
             cout << "cheating!!!" << '\n';}
@@ -725,7 +725,7 @@ template <class FieldType>
 void ProtocolParty<FieldType>::runOnline() {
 
     auto t1 = high_resolution_clock::now();
-    timer->startSubTask();
+    timer->startSubTask(3, iteration);
     inputPhase();
     inputVerification();
     timer->endSubTask(3, iteration);
@@ -741,7 +741,7 @@ void ProtocolParty<FieldType>::runOnline() {
 
 
     t1 = high_resolution_clock::now();
-    timer->startSubTask();
+    timer->startSubTask(4, iteration);
     computationPhase(m);
     timer->endSubTask(4, iteration);
     t2 = high_resolution_clock::now();
@@ -756,7 +756,7 @@ void ProtocolParty<FieldType>::runOnline() {
     }
 
     t1 = high_resolution_clock::now();
-    timer->startSubTask();
+    timer->startSubTask(5, iteration);
     verificationPhase();
     timer->endSubTask(5, iteration);
 
@@ -769,7 +769,7 @@ void ProtocolParty<FieldType>::runOnline() {
     }
 
     t1 = high_resolution_clock::now();
-    timer->startSubTask();
+    timer->startSubTask(6, iteration);
     outputPhase();
     timer->endSubTask(6, iteration);
 
